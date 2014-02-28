@@ -3,18 +3,18 @@ Plugin URI: http://wordpress.org/extend/plugins/esv-bible-shortcode-for-wordpres
 Author URI: http://calebzahnd.com
 Description: This plugin uses the ESV Bible Web Service API to provide an easy way to display scripture in the ESV translation using WordPress shortcodes.
 Author: Caleb Zahnd
-Contributors: calebzahnd
+Contributors: calebzahnd campg2003
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.0.2
+Version: 1.0.21
 Requires at least: 2.5
-Tested up to: 3.3.1
+Tested up to: 3.8.1
 Stable tag: 1.0.2
 
 This plugin uses the ESV Bible Web Service API to provide an easy way to display scripture in the ESV translation using WordPress shortcodes.
 
 == Description ==
 
-This plugin uses the ESV Bible Web Service API to provide an easy way to display scripture in the ESV translation on a WordPress installation. Using WordPress shortcodes, you can quickly display lengthy passages or single verses in your WordPress posts.
+This plugin uses the ESV Bible Web Service API to provide an easy way to display scripture in the ESV translation on a WordPress installation. Using WordPress shortcodes, you can quickly display lengthy passages or single verses in your WordPress posts.  You can also have the passages cached using the WordPress Transients API.  The hash tag under which  the entry is cached is formed by "ESV" followed by the result of applying md5() to the URL used to fetch the passage.
 
 
 == Installation ==
@@ -98,3 +98,15 @@ Applicable only when outputting plain-text. Include a line of equals signs (===)
 
 'include_heading_horizontal_lines // Default: 'false'
 Applicable only when outputting plain-text. Include a line of underscores (___) above each section heading.
+
+'expire_seconds' // default 1 week.
+The number of seconds until the cached entry expires.  The number can be suffixed with s (does nothing), m, h, d, or w for second, minute, hour, day, and week, respectively.  If set to 0, the entry is not cached.
+
+'limit' // default none.
+The maximum number of bytes in a cached entry.  Entries larger than this are not cached.
+
+'remove'
+If "true", the entry is removed from the cache.
+
+'debug' // default false.
+If "true", a message is printed giving information about how the entry is handled.
