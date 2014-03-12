@@ -102,7 +102,7 @@ Applicable only when outputting plain-text. Include a line of underscores (___) 
 'expire_seconds' // default 1 week.
 The number of seconds until the cached entry expires.  The number can be suffixed with s (does nothing), m, h, d, or w for second, minute, hour, day, and week, respectively.  If set to 0, the entry is not cached.
 
-'limit' // default none.
+'size_limit' // default none.
 The maximum number of bytes in a cached entry.  Entries larger than this are not cached.
 
 'remove'

@@ -14,6 +14,8 @@ Stable tag: 1.0.2
 */
 
 /*
+3/11/14 Changed ...limit to ...size_limit.
+2/26/14 Previous saved to HG rev 1.
 2/26/14 Added remove option.
 2/25/14 Added option to cache passages.  uses the transients API, uses "esv" . md5(URL that fetches the passage).
 If container or class is set to empty the element or attribute is not added.  Added option expire_seconds is set to the number of seconds to cache the passages.  Its value can be suffixed with "m", "h", "d", or "w" for minute, hour, day, or week, respectively.
@@ -22,13 +24,13 @@ Added option debug, if true adds a message indicating whether the entry came fro
 */
 
 $esv_shortcode_default_expire_seconds = WEEK_IN_SECONDS;  // default expiration time, 0 = no caching
-$esv_shortcode_default_limit = 0; // limit for cached entry size, 0 is no limit
+$esv_shortcode_default_size_limit = 0; // limit for cached entry size, 0 is no limit
 
 // Shortcode: [esv scripture="John 3:16-23"]
 function esv($atts)
 {
 
-  global $esv_shortcode_default_expire_seconds, $esv_shortcode_default_limit;
+  global $esv_shortcode_default_expire_seconds, $esv_shortcode_default_size_limit;
   extract( shortcode_atts( array(
 				 'scripture'	    			 		=>	'John 3:16',
 				 'container' 	    				=>	'span',
@@ -52,7 +54,7 @@ function esv($atts)
 				 'include_passage_horizontal_lines'	=>	'false',
 				 'include_heading_horizontal_lines'	=>	'false',
 				 'expire_seconds' => $esv_shortcode_default_expire_seconds,
-				 'limit' => $esv_shortcode_default_limit,
+				 'size_limit' => $esv_shortcode_default_size_limit,
 				 'debug' => false,
 				 'remove' => false
 				 ), $atts ) );
@@ -86,7 +88,7 @@ function esv($atts)
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
     $response = curl_exec($ch);
     curl_close($ch);
-    if ($expire_seconds && (!$limit || strlen($response) < $limit))
+    if ($expire_seconds && (!$size_limit || strlen($response) < $size_limit))
     {
       $msg = "fetched, ". strlen($response)." bytes cached as $hash for $expire_seconds seconds"; // debug
       set_transient($hash, $response, $expire_seconds);
