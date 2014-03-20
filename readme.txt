@@ -1,12 +1,12 @@
 === ESV Bible Shortcode for WordPress ===
 Plugin URI: http://wordpress.org/extend/plugins/esv-bible-shortcode-for-wordpress/
 Author URI: http://calebzahnd.com
-Description: This plugin uses the ESV Bible Web Service API to provide an easy way to display scripture in the ESV translation using WordPress shortcodes.
+Description: This plugin uses the ESV Bible Web Service API to provide an easy way to display scripture in the ESV translation using WordPress shortcodes.  passages can be cached.  A settings page allows setting of caching defaults.
 Author: Caleb Zahnd
-Contributors: calebzahnd campg2003
+Contributors: calebzahnd, campg2003
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.0.21
-Requires at least: 2.5
+Version: 1.0.22
+Requires at least: 2.7
 Tested up to: 3.8.1
 Stable tag: 1.0.2
 
@@ -14,7 +14,7 @@ This plugin uses the ESV Bible Web Service API to provide an easy way to display
 
 == Description ==
 
-This plugin uses the ESV Bible Web Service API to provide an easy way to display scripture in the ESV translation on a WordPress installation. Using WordPress shortcodes, you can quickly display lengthy passages or single verses in your WordPress posts.  You can also have the passages cached using the WordPress Transients API.  The hash tag under which  the entry is cached is formed by "ESV" followed by the result of applying md5() to the URL used to fetch the passage.
+This plugin uses the ESV Bible Web Service API to provide an easy way to display scripture in the ESV translation on a WordPress installation. Using WordPress shortcodes, you can quickly display lengthy passages or single verses in your WordPress posts.  You can also have the passages cached using the WordPress Transients API.  The hash tag under which the entry is cached is formed by "ESV" followed by the result of applying md5() to the URL used to fetch the passage.
 
 
 == Installation ==
@@ -24,9 +24,15 @@ The plugin is simple to install:
 1. Download 'esv-bible-shortcode-for-wordpress.zip'
 2. Unzip
 3. Upload 'esv-shortcode' directory to your '/wp-content/plugins' directory
-4. Go to the plugin management page and enable the plugin
-5. Done!
+4. Go to the plugin management page and activate the plugin
+5. (optional) Go to the ESV Bible Shortcode page and change any default values as desirdd.
+6. Done!
 
+If you are upgrading from v1.0.21 (caching without admin page), note that the limit option has changed to size_limit.
+
+The options page allows you to set the default and maximum caching period, and the maximum size (bytes) passage that can be cached.  It also has a checkbox that causes the plugin's options to be reset to their installation defaults the next time the plugin is activated.
+
+To uninstall, go to the Plugin Management page and deactivate, then delete the plugin.  This will remove the plugin's options from the database and its files from the plugins directory.  It does not remove any passages that are still cached.
 
 == Usage ==
 
@@ -99,19 +105,33 @@ Applicable only when outputting plain-text. Include a line of equals signs (===)
 'include_heading_horizontal_lines // Default: 'false'
 Applicable only when outputting plain-text. Include a line of underscores (___) above each section heading.
 
-'expire_seconds' // default 1 week.
-The number of seconds until the cached entry expires.  The number can be suffixed with s (does nothing), m, h, d, or w for second, minute, hour, day, and week, respectively.  If set to 0, the entry is not cached.
+'expire_seconds' // Default: set on options page, initial default 1 week.
+The number of seconds until the cached entry expires.  The number can be suffixed with s (does nothing), m, h, d, or w for seconds, minutes, hours, days, and weeks, respectively.  If set to 0, the passage is not cached.
 
-'size_limit' // default none.
-The maximum number of bytes in a cached entry.  Entries larger than this are not cached.
+'size_limit' // Default: set on options page, initial default 0, no limit.
+The maximum number of bytes in a cached passage.  Passages larger than this are processed but not cached.  0=no limit.
 
-'remove'
-If "true", the entry is removed from the cache.
+'remove' // Default: false.
+If "true", the specified passage is removed from the cache.
+The key for the passage is generated from the specified URL, so the scripture reference, and most of the other options determine the key.  So if a passage was fetched as "John 3:16-21", then specifying  "John 3:16-20,21" will not remove it.
 
-'debug' // default false.
-If "true", a message is printed giving information about how the entry is handled.
+'debug' // Default: false.
+If 'true', a message is included in the displayed text giving information about how the request was processed.
 
 == Changelog ==
+
+= 1.0.22 =
+* Encapsulated functions in a class.  
+* Added an options page.
+* Changed min WordPress version to 2.7.
+* Added a version constant.
+* Added expire_seconds_limit option.  It can have the same letter suffixes as expire_seconds.
+* A checkbox on the options page causes options to be set to "factory" defaults on the next plugin activation.
+* Added validate function, validates expire_seconds , expire_seconds_limit, and size_limit.
+* Wrote static method expire_to_seconds to convert the expire fields into seconds.
+* If the 'debug' and 'remove' options are set to the string 'false', they are set to false.
+* Refactored expire_seconds_limit code in esv_shortcode_class::esv.
+
 = 1.0.21 =
 * Added option to cache passages.  uses the transients API, uses "esv" . md5(URL that fetches the passage).
 
@@ -127,6 +147,9 @@ If "true", a message is printed giving information about how the entry is handle
 * Added remove option.
 
 == Upgrade Notice ==
+
+= 1.0.22 =
+Adds an options page to allow setting of caching defaults.
 
 = 1.0.21 =
 Adds caching of passages via the WordPress Transients API.
