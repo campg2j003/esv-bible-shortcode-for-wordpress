@@ -110,3 +110,23 @@ If "true", the entry is removed from the cache.
 
 'debug' // default false.
 If "true", a message is printed giving information about how the entry is handled.
+
+== Changelog ==
+= 1.0.21 =
+* Added option to cache passages.  uses the transients API, uses "esv" . md5(URL that fetches the passage).
+
+* If container or class is set to empty the element or attribute is not added.
+
+* Added option expire_seconds to specify the number of seconds to cache the passages.  Its value can be suffixed with "m", "h", "d", or "w" for minutes, hours, days, or weeks, respectively.
+
+
+* Added option size_limit, if nonzero sets limit of size of the passage to cache.  Passages larger than this limit will not be cached.
+
+* Added option debug, if true adds a message indicating whether the entry came from the cache or the server.
+
+* Added remove option.
+
+== Upgrade Notice ==
+
+= 1.0.21 =
+Adds caching of passages via the WordPress Transients API.
