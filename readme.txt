@@ -5,16 +5,16 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd, campg2003
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.0.23
+Version: 1.0.24
 Requires at least: 2.7
-Tested up to: 3.9.1
+Tested up to: 4.2.2
 Stable tag: 1.0.2
 
 This plugin uses the ESV Bible Web Service API to provide an easy way to display scripture in the ESV translation using WordPress shortcodes.
 
 == Description ==
 
-This plugin uses the ESV Bible Web Service API to provide an easy way to display scripture in the ESV translation on a WordPress installation. Using WordPress shortcodes, you can quickly display lengthy passages or single verses in your WordPress posts.  You can also have the passages cached using the WordPress Transients API.  The hash tag under which the entry is cached is formed by "ESV" followed by the result of applying md5() to the URL used to fetch the passage.
+This plugin uses the ESV Bible Web Service API to provide an easy way to display scripture in the ESV translation on a WordPress installation. Using WordPress shortcodes, you can quickly display lengthy passages or single verses in your WordPress posts.  You can also have the passages cached using the WordPress Transients API.  The hash tag under which the entry is cached is formed by "esv" (or "esvr") followed by the result of applying md5() to the URL used to fetch the passage.
 
 The plugin provides an options page where the default expiration time, maximum expiration time, and the maximum cached passage size can be set.  (Passages larger than the maximum size are displayed but not cached.)  The options page also shows the number of passage accesses, the number of passage fetches, and the maximum number of fetches per day.
 
@@ -195,7 +195,33 @@ Shortcodes like
 
 will display the appropriate passages.
 
+== esv_date Shortcode ==
+
+The esv_date shortcode allows you to have the same date code processing performed on a piece of text as is done on the passage name.  The syntax is:
+
+[esv_date date="<date>"]text with date codes[/esv_date]
+
+<date> is the same thing that would appear inside the parentheses of a passage name.
+
+Example:
+
+`[esv_date date="%W"]The scripture passage for %B %d, %Y:[/esv_date]`
+
+would produce something like
+
+`The scripture passage for July 06, 2014:`
+
+== esv_ref Shortcode ==
+
+The esv_ref shortcode inserts just the reference.  Although it takes the scripture option, it is intended for use with named passages.  The result is a string containing the reference as expanded by the server.  This reference is cached in the same way as by the esv shortcode, but with a "esvr" prefix.  This allows both a reference and a passage for the same reference to be cached.
+
+This shortcode takes the following options: scripture, passage, expire_seconds, size_limit, debug, remove.  The meanings are the same as for the esv shortcode.
+
 == Changelog ==
+
+= 1.0.24 =
+* Added esv_ref and esv_date shortcodes.
+* Conditions of Use link now opens in a new window.
 
 = 1.0.23 =
 
@@ -234,6 +260,9 @@ will display the appropriate passages.
 * Added remove option.
 
 == Upgrade Notice ==
+
+= 1.0.24 =
+Adds the esv_ref and esv_date shortcodes.
 
 = 1.0.23 =
 Adds passages facility allowing you to reference passages by name with date substitution.

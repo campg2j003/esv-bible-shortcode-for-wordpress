@@ -7,14 +7,25 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.0.23  // see also version at start of class esv_shortcode
+Version: 1.0.24
 Requires at least: 2.7
-Tested up to: 3.9.1
+Tested up to: 4.2.2
 Stable tag: 1.0.2
 */
+  // see also version at start of class esv_shortcode
 
 
 /*
+6/23/15 Conditions of use link now opens in a new window.
+2/27/15 Replaced SECONDS_IN_DAY with DAY_IN_SECONDS.
+2/24/15 Added esv_ref shortcode.
+Made method add_action_links a static method.
+Removed comment from version line in header.
+Changed version to 1.0.24.
+7/5/14 Previous saved to HG rev 9.
+7/5/14 Moved code that process the (%w...) out of process_passage_name into make_passage_timestamp.
+Added shortcode esv_date.
+7/5/14 Previous saved to HG rev 8.
 7/1/14 Indented code.
 Updated README.
 6/27/14 Updated debugging messages in esv.
@@ -87,7 +98,7 @@ reset stats on save if checked, checkbox clear when reloaded.  Confirm message a
 
 class esv_shortcode_class
 {
-  public static $version = '1.0.23';
+  public static $version = '1.0.24';
   public static $options_version = 1;  // version of the options structure
   public static $default_expire_seconds = "1w";  // default expiration time, 0 = no caching
   public static $default_expire_seconds_limit = "30d";
@@ -141,7 +152,7 @@ class esv_shortcode_class
   public static function stats_defaults($opts)
   {
     $time = time();
-    $today = $time - $time % SECONDS_IN_DAY;
+    $today = $time - $time % DAY_IN_SECONDS;
     $defaults = array(
 	  'hit_count' => 0, // number of shortcode accesses
 	  'start_time' => $time, // time of start of stats
@@ -165,10 +176,10 @@ class esv_shortcode_class
     if ($fetch)
     {
       $time = time();
-      if (($time - $opts['today']) > SECONDS_IN_DAY)
+      if (($time - $opts['today']) > DAY_IN_SECONDS)
       {
 	// new day
-	$opts['today'] = $time - $time % SECONDS_IN_DAY;
+	$opts['today'] = $time - $time % DAY_IN_SECONDS;
 	$opts['fetches_today'] = 0;
       } // if new day
       $opts['fetch_count'] = $opts['fetch_count'] + 1;
@@ -275,7 +286,7 @@ class esv_shortcode_class
       <?php do_settings_sections(__FILE__);
 	    ?>   <p><input name="Submit" type="submit" value="<?php esc_attr_e('Save Changes'); ?>" /></p>
     </form>
-      <p><a href="http://www.esvapi.org/#conditions">Conditions of use of ESV scripture</a></p></div>
+      <p><a href="http://www.esvapi.org/#conditions" target="_blank">Conditions of use of ESV scripture</a></p></div>
 	<?php
   } // esv_shortcode_options_page
 
@@ -394,7 +405,7 @@ class esv_shortcode_class
   // Display a Settings link on the main Plugins page.  Passed to filter plugin_action_links.
 
 
-  function add_action_links( $links, $file ) {
+  public static function add_action_links( $links, $file ) {
 
 
 
@@ -498,7 +509,7 @@ class esv_shortcode_class
     // $resp is MXL containing information about the passage ref.
     // $resp must contain: <query-type>passage</query-type>, if invalid verse ref returns <code>ref-not-exist</code> and <readable>message<br/>...</readable>
     // Can also contain <error>message</error>
-    // ?? If error, return error message, else return ,,
+    // ?? If error, return error message, else return ""
     if (preg_match("|<error>(.*?)</error>|", $resp, $a))
     {
       return "Fatal error: {$a[1]}";
@@ -535,6 +546,7 @@ class esv_shortcode_class
 
     //$this->msg("process_passage_name: after match to separate format and time \$i = $i, \$a = " . print_r($a, true) . "");   // debug
 
+    $sTm = '';
     if (!$i || !isset($a))
 
     {
@@ -561,6 +573,23 @@ class esv_shortcode_class
 
     // Get the necessary time stamp.
 
+    $iTime = self::make_passage_timestamp($sTm);
+
+    // Format the time stamp.
+
+    $s = strfTime($sFmt, $iTime);
+
+    //$this->msg("process_passage_name: returning $s.");   // debug
+
+    return $s;
+
+  }   // Process_passage_name
+
+  // Make a timestamp for use in expanding passage names.
+  // @param string $sTm the "date" (i.e. %w,yyyymmdd) spec used in the passage name.
+  // @return int timestamp value
+  public static function make_passage_timestamp($sTm='')
+  {
     $iTime = time();   // current time as a UNIX time stamp.
 
     if (isset($sTm) && $sTm)
@@ -645,16 +674,9 @@ class esv_shortcode_class
       }   // if $aTm
 
     }   // if $sTm
+    return $iTime;
+  } // make_passage_timestamp
 
-    // Format the time stamp.
-
-    $s = strfTime($sFmt, $iTime);
-
-    //$this->msg("process_passage_name: returning $s.");   // debug
-
-    return $s;
-
-  }   // Process_passage_name
 
 
 
@@ -689,6 +711,7 @@ class esv_shortcode_class
 
   // Shortcode: [esv scripture="John 3:16-23"]
   // @param array $atts
+  // @return string containing the scripture as HTML.
   public static function esv($atts)
   {
     $opts = self::get_opts();
@@ -788,7 +811,136 @@ class esv_shortcode_class
     //Display the Title as a link to the Post's permalink.
     //return (($container?"<".$container. ($class?" class=\"" . $class:'') . "\">":'') . $response . ($container?"</".$container.">":'');
     return ($debug?nl2br("[$msg]"):'') . ($container?"<".$container. ($class?" class=\"" . $class:'') . "\">":'') . $response . ($container?"</".$container.">":'');
-  }
+  } // esv
+
+  // Shortcode: [esv_date]
+  // Performs the same date format code substitution on the enclosed content as is done on the passage name.
+  // usage: insert a shortcode like [esv_date "%w,20140705"]The passage is for %b %d[/esv_date] in your page.
+  public static function esv_date($atts, $content)
+  {
+    extract( shortcode_atts( array(
+				   'date'	    			 		=>	''				   ), $atts ) );
+    if (!is_null($content)) return strfTime($content, self::make_passage_timestamp($date));
+  } // esv_date
+
+  // Shortcode: [esv_ref passage="passagename"]
+  // @param array $atts
+  // Returns only the reference as a string.  It is not wrapped with any HTML.  (Newlines in debug messages will be converted to <br/>.)
+  // If the query returns an error, a message will be returned.
+  // @param $attr array can contain the following options (same as for function esv): scripture, passage, expire_seconds, size_limit, debug, remove.
+  public static function esv_ref($atts)
+  {
+    $opts = self::get_opts();
+    extract( shortcode_atts( array(
+				   'scripture'	    			 		=>	'John 3:16',
+				   'passage'	    			 		=>	'',
+				   				   'expire_seconds' => $opts['expire_seconds'],
+				   'size_limit' => $opts['size_limit'],
+				   'debug' => false,
+				   'remove' => false
+				   ), $atts ) );
+    if ($remove == 'false') $remove = false;
+    if ($debug == 'false') $debug = false;
+    $msg = ""; // debug
+    // Handle expiration time multipliers
+    //$msg .= "expire_seconds = $expire_seconds, expire_to_seconds(expire_seconds)=".self::expire_to_seconds($expire_seconds); // debug
+    $expire_seconds = self::expire_to_seconds($expire_seconds);
+    $expire_seconds_limit = array_key_exists('expire_seconds_limit', $opts)?self::expire_to_seconds($opts['expire_seconds_limit']):null;
+    if ($expire_seconds_limit)
+    {
+      if ($expire_seconds > $expire_seconds_limit) $expire_seconds = $expire_seconds_limit;
+    } // if $expire_seconds_limit
+    $key = isset($opts['access_key'])?$opts['access_key']:"IP";
+    $psg_name = '';
+    //foreach (array("lec%b", "%b", "%bns") as $k => $v) $msg .= "strfTime($v)='".strfTime($v)."'\n"; // debug
+    if ($passage)
+    {
+      $psg_name = strtolower(self::process_passage_name($passage));
+    } // if $passage
+    $msg .= "\$passage='$passage', \$psg_name='$psg_name'\n"; // debug
+    if (!empty($psg_name) && isset($opts['passages_list'][$psg_name]))
+    {
+      $msg .= "Trying to use passage=$psg_name\n"; // debug
+      $tmp = $opts['passages_list'][$psg_name];
+      $ref = urlencode(!preg_match('/^\s*#/', $tmp)?
+		       $tmp : $scripture);
+      $msg .= "Using $ref\n"; // debug
+    } // if $passage
+    else
+    {
+      $msg .= "Using scripture attribute: $scripture\n"; // debug
+      $ref = urlencode($scripture);
+    } // else no passage name
+    $url = "http://www.esvapi.org/v2/rest/queryInfo?key=".$key."&q=".$ref;
+    $hash = "esvr" . md5($url);
+    $msg .= "Trying for cache entry $hash"; // debug
+    $response = get_transient($hash);
+    $resp_error = false;
+    if (!$expire_seconds || !$response)
+    {
+      // fetch passage from server
+      $msg .= ", not cached, fetching, expire_seconds=$expire_seconds, expire_seconds_limit=$expire_seconds_limit"; // debug
+      $resp = self::get_response($url);
+      // $resp is MXL containing information about the passage ref.
+      // $resp must contain: <query-type>passage</query-type>, if invalid verse ref returns <code>ref-not-exist</code> and <readable>message<br/>...</readable>
+      // Can also contain <error>message</error>
+      if (preg_match("|<error>(.*?)</error>|", $resp, $a))
+      {
+	$resp_error = true;
+	$response = "Fatal error: {$a[1]}";
+      } // if <error>
+      elseif (!preg_match("|<query-type>passage|", $resp, $a))
+      {
+	$resp_error = true;
+	$response = "not a passage ref";
+      } // if not passage ref
+      elseif (preg_match("|<code>ref-not-exist</code>|", $resp, $a))
+      {
+	$resp_error = true;
+	$response = "Nonexistent reference";
+      } // if <code>ref-not-exist
+      else
+      {
+	// No elements that indicate an error
+	if (preg_match("|<readable>(.*?)</readable>|", $resp, $a))
+	{
+	  $response = $a[1]; // valid
+	}
+	else
+	{
+	  $resp_error = true;
+	  $response = "Response did not contain a reference";
+	} 
+      } // else no elements that indicate an error
+      if (!$resp_error && $expire_seconds && (!$size_limit || strlen($response) < $size_limit))
+      {
+	$msg .= ", fetched, ". strlen($response)." bytes cached as $hash for $expire_seconds seconds"; // debug
+	set_transient($hash, $response, $expire_seconds);
+      } // cache
+      else // debug
+      { // debug
+	$msg .= ", not cached"; // debug
+	if ($resp_err) $msg .= ", query returned error"; // debug
+      } // debug
+      self::stats_record(true); // fetched
+    } // fetch passage
+
+    else self::stats_record(false); // from cache
+    if ($remove)
+    {
+      $fRtn = delete_transient($hash);
+      $msg .= $fRtn?", removed":", remove failed"; // debug
+
+    } // remove
+
+    if ($resp_error)
+    {
+      $msg .= ", error fetching scripture reference: " . $response; // debug
+      $response = "Error fetching scripture reference: " . $response;
+    }
+    return ($debug?nl2br("[$msg]"):'') . $response;
+  } // esv_ref
+
 } // esv_shortcode_class
 
 register_activation_hook(__file__, array('esv_shortcode_class', 'add_defaults'));
@@ -799,5 +951,7 @@ add_action('admin_init', array('esv_shortcode_class', 'plugin_admin_init'));
 add_filter( 'plugin_action_links', array('esv_shortcode_class', 'add_action_links'), 10, 2 );
 
 add_shortcode('esv', array('esv_shortcode_class', 'esv'));
+add_shortcode('esv_date', array('esv_shortcode_class', 'esv_date'));
+add_shortcode('esv_ref', array('esv_shortcode_class', 'esv_ref'));
 
   ?>
