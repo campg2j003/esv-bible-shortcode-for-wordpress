@@ -5,9 +5,9 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd, campg2003
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.0.24
+Version: 1.0.26
 Requires at least: 2.7
-Tested up to: 4.2.2
+Tested up to: 4.6.1
 Stable tag: 1.0.2
 
 This plugin uses the ESV Bible Web Service API to provide an easy way to display scripture in the ESV translation using WordPress shortcodes.
@@ -135,9 +135,11 @@ If 'true', a message is included in the displayed text giving information about 
 
 == Using the Passage Name Facility ==
 
-On the options page there is an edit box in which you can define one or more passage names and their references.  You can then reference the passage by name using the 'passage' attribute instead of the 'scripture' attribute.  Each passage definition appears on its own line.  The name is at the beginning of the line and is followed by one or more spaces or tabs and the scripture reference.  This format allows you to paste a passage list prepared in a text editor into the edit box.  Passage names are composed of letters, numbers, hyphen, or underline, but names are converted to lower case.  Multiple spaces in the reference are replaced by a single SPACE character.  When Save is pressed, scriptures not already in the list are sent to the server and checked for accuracy.  If the server reports an error, a "#" and a message are inserted before the reference.  Such references are ignored by the 'passage' attribute.  An error message is also printed on the options page.  Note that if the reference "ps 1" is in the list and you add "psalm 1", it will be treated as a new reference and checked, as will "ps1 ps3".
+On the options page there is an edit box in which you can define one or more passage names and their references.  You can then reference the passage by name using the 'passage' attribute instead of the 'scripture' attribute.  Each passage definition appears on its own line.  The name is at the beginning of the line and is followed by one or more spaces or tabs and the scripture reference.  This format allows you to paste a passage list prepared in a text editor into the edit box.  Passage names are composed of letters, numbers, hyphen, or underline, but names are converted to lower case.  Multiple spaces in the reference are replaced by a single SPACE character.  You can include a comment by starting the reference with a number sign (#).  If you start the line with #, a numeric "passage name" will be given to the line.  If the reference starts with @, the following text will be displayed instead of the scripture text.
 
-The name specified in the 'passage' attribute can contain strfTime formatting codes to substitute components of the date.  It can also contain a date specifier which allows you to specify a particular day in the week of the date.  The format of the name is:
+When Save is pressed, scriptures not already in the list are sent to the server and checked for accuracy.  If the server reports an error, a "#" and a message are inserted before the reference.  Such references are ignored by the 'passage' attribute.  An error message is also printed on the options page.  Note that if the reference "ps 1" is in the list and you add "psalm 1", it will be treated as a new reference and checked, as will "ps1 ps3".
+
+The name specified in the 'passage' attribute can contain strfTime formatting codes to substitute components of the date.  It can also contain a date specifier which allows you to specify a particular day in the week of the date.  If a passage name is not defined for a passage name containing formatting codes, the codes are removed and that passage name is used.  So if passage="psg%b%d(%W)" is specified and no such passage name is defined, then passage name psg is looked up instead.  The format of the name is:
 
 &lt;<var>format</var>&gt;[(&lt;<var>date</var>&gt;)]
 where
@@ -219,6 +221,12 @@ This shortcode takes the following options: scripture, passage, expire_seconds, 
 
 == Changelog ==
 
+= 1.0.26 =
+* If a passage name containing a date format code is not found, the format codes are removed and the resulting passage name is used.
+
+= 1.0.25 =
+* When a passage reference starts with @, it is treated as a message and is displayed verbatim.
+
 = 1.0.24 =
 * Added esv_ref and esv_date shortcodes.
 * Conditions of Use link now opens in a new window.
@@ -260,6 +268,12 @@ This shortcode takes the following options: scripture, passage, expire_seconds, 
 * Added remove option.
 
 == Upgrade Notice ==
+
+= 1.0.26 =
+If a passage name containing a date format code is not found, the format codes are removed and the resulting passage name is used.
+
+= 1.0.25 =
+When a passage reference starts with @, it is treated as a message and is displayed verbatim.
 
 = 1.0.24 =
 Adds the esv_ref and esv_date shortcodes.

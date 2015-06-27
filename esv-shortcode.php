@@ -7,15 +7,22 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.0.24
+Version: 1.0.26
+=======
+Version: 1.0.29
+>>>>>>> b192ab2... Attempt to view README from settings page.
 Requires at least: 2.7
-Tested up to: 4.2.2
+Tested up to: 4.6.1
 Stable tag: 1.0.2
 */
   // see also version at start of class esv_shortcode
 
 
 /*
+11/12/16 When a passage reference starts with @, it is treated as a message and is displayed verbatim.  V1.0.25.
+11/11/16 In process_passages_list now does not check passage references that start with #.
+
+6/27/15 Added ESV search form on the plugin settings page.  This is to aid in checking scripture reference syntax, although it does not use the plugin.  
 6/23/15 Conditions of use link now opens in a new window.
 2/27/15 Replaced SECONDS_IN_DAY with DAY_IN_SECONDS.
 2/24/15 Added esv_ref shortcode.
@@ -98,7 +105,8 @@ reset stats on save if checked, checkbox clear when reloaded.  Confirm message a
 
 class esv_shortcode_class
 {
-  public static $version = '1.0.24';
+  public static $version = '1.0.26';
+  public static $ref_msg_symbol = '@'; // Symbol that indicates that a passage "reference" is a message to be output verbatim.
   public static $options_version = 1;  // version of the options structure
   public static $default_expire_seconds = "1w";  // default expiration time, 0 = no caching
   public static $default_expire_seconds_limit = "30d";
@@ -271,7 +279,7 @@ class esv_shortcode_class
 ?> <div class="wrap"> <h2>ESV Bible Shortcode plugin v<?php echo self::$version;?></h2> <p>Options relating to the ESV Bible Shortcode Plugin.</p><br/>
 <?php
     $opts = self::get_opts();
-    echo "<p>opts = " . print_r($opts, true) . "</p>"; // debug
+    // echo "<p>opts = " . print_r($opts, true) . "</p>"; // debug
     if (isset($opts['was_reset']) && $opts['was_reset'])
     {
 ?><p>Options were reset to default values.</p><br/><?php
@@ -286,7 +294,28 @@ class esv_shortcode_class
       <?php do_settings_sections(__FILE__);
 	    ?>   <p><input name="Submit" type="submit" value="<?php esc_attr_e('Save Changes'); ?>" /></p>
     </form>
-      <p><a href="http://www.esvapi.org/#conditions" target="_blank">Conditions of use of ESV scripture</a></p></div>
+      <p><a href="http://www.esvapi.org/#conditions" target="_blank">Conditions of use of ESV scripture</a></p>
+	<p>Below is a search form to search the ESV Bible.  It does not use the plugin, but it can help you check the syntax of scripture references.</p>
+<form action="http://www.esvapi.org/v2/rest/passageQuery" 
+  id="esvsearchform" method="get" target="_blank">
+ 
+  <input type="hidden" name="key" value="<?php
+echo $opts['access_key']?>"/>
+
+<label for="esvinput">Search the ESV Bible</label>
+ 
+  <input type="text" name="passage" id="esvinput" size="20" 
+  maxlength="255" />
+  <input type="submit" name="go" id="esvsearchbutton" 
+  value="Search" />
+  <br />
+  <small>(e.g., <em>
+John 1
+</em>)</small>
+ </form>
+
+			<a href="<?php echo plugins_url('readme.txt', __FILE__);?>" target="_blank">View the plugin README</a>
+</div>
 	<?php
   } // esv_shortcode_options_page
 
@@ -431,6 +460,9 @@ class esv_shortcode_class
   // Writes the Passages section prologue.
   public static function passages_section_text()
   {
+    echo "<p>A passage is described by a line in the following list.  Each line consists of a passage name and its reference separated by whitespace.</p>\n";
+    echo "When a syntax error is detected the line is preceeded by # and possibly a message.  Note that these lines will have a numeric \"passage name\".  Leave this in tact if you wish to retain the entry in the list.  Your passage names should not contain only numbers to avoid colliding with these.</p>\n";
+    echo "<p>A \"reference\" can be displayed verbatim in place of the scripture text by starting it with " . self::$ref_msg_symbol . ".  The text may contain HTML, and will appear inside whatever container would have held the scripture text.</p>\n";
   } // passages_section_text
 
 
@@ -462,7 +494,7 @@ class esv_shortcode_class
       $j = preg_match('/^([a-zA-Z0-9_-]+)[ \t]+(.+)$/', $line, $a);
       if (!$j || !isset($a) || count($a) != 3)
       {
-	// passage syntax error
+	// passage syntax error.  Note that this line will be stored with a numeric key.
 	$new_passages_list[] = "#" . $line;
       } // if passage syntax error
       else
@@ -478,7 +510,8 @@ class esv_shortcode_class
     // Check new references.
     foreach ($new_passages_list as $key => $val)
     {
-      if (!array_key_exists($val, $old_refs))
+      // We don't check if ref starts with # (comment/error) or @ (verbatim message).
+      if (!preg_match("/^[" . self::$ref_msg_symbol . "#]/", $val, $a) && !array_key_exists($val, $old_refs))
       {
 	// ref_error returns '' for valid references.
 	if (($msg=self::ref_error($val)))
@@ -510,6 +543,7 @@ class esv_shortcode_class
     // $resp must contain: <query-type>passage</query-type>, if invalid verse ref returns <code>ref-not-exist</code> and <readable>message<br/>...</readable>
     // Can also contain <error>message</error>
     // ?? If error, return error message, else return ""
+    // | is delimiter in the following regexps.
     if (preg_match("|<error>(.*?)</error>|", $resp, $a))
     {
       return "Fatal error: {$a[1]}";
@@ -584,6 +618,35 @@ class esv_shortcode_class
     return $s;
 
   }   // Process_passage_name
+
+  // strip_passage_datecodes-- remove formatting characters from a passage name.
+
+  // @param string $sName -- string to be stripped.
+
+  // @return string The stripped name.
+  public static function strip_passage_datecodes($sName)
+  {
+    //$msg = ''; // debug
+    $s = $sName;
+    $i = strpos($s, "(");
+    if ($i !== FALSE)
+      {
+	//$msg .= "paren position is " . print_r($i, true) . "\n"; // debug
+	if ($i == 0)
+	  {
+	    // The left paren is at the start of the string, return empty string.
+	    //$msg .= "paren at 0, returning empty string\n"; // debug
+	    return "";
+	    //return array('msg' => $msg, 'rtn' => ""); // debug
+	  }
+	$s = substr($s, 0, $i); // remove paren and everything after it.
+      } // if found a paren
+    //$msg .= "Rpplacing on '$s'\n"; // debug
+    $s = preg_replace("/%./", "", $s);
+    //$msg .= "Returning '$s'"; // debug
+    return $s;
+    //return array('msg' => $msg, 'rtn' => $s); // debug
+  } // strip_passage_datecodes
 
   // Make a timestamp for use in expanding passage names.
   // @param string $sTm the "date" (i.e. %w,yyyymmdd) spec used in the passage name.
@@ -765,49 +828,66 @@ class esv_shortcode_class
       $psg_name = strtolower(self::process_passage_name($passage));
     } // if $passage
     $msg .= "\$passage='$passage', \$psg_name='$psg_name'\n"; // debug
+    if (!empty($psg_name) && !isset($opts['passages_list'][$psg_name]))
+    {
+      $msg .= "$psg_name not set"; // debug
+      $psg_name = self::strip_passage_datecodes($passage);
+      // debugging
+      //$arrrtn = self::strip_passage_datecodes($passage);
+      //$psg_name = $arrrtn['rtn'];
+      //$msg .= $arrrtn['msg'];
+      $msg .= ", trying with datecodes removed: '$psg_name'\n"; // debug
+    }
     if (!empty($psg_name) && isset($opts['passages_list'][$psg_name]))
     {
       $msg .= "Trying to use passage=$psg_name\n"; // debug
       $tmp = $opts['passages_list'][$psg_name];
-      $ref = urlencode(!preg_match('/^\s*#/', $tmp)?
-		       $tmp : $scripture);
+      $ref = !preg_match('/^\s*#/', $tmp)?
+		       $tmp : $scripture;
       $msg .= "Using $ref\n"; // debug
     } // if $passage
     else
     {
       $msg .= "Using scripture attribute: $scripture\n"; // debug
-      $ref = urlencode($scripture);
+      $ref = $scripture;
     } // else no passage name
-    $options = "include_passage_references=".$include_passage_references."&include_first_verse_numbers=".$include_first_verse_numbers."&include_verse_numbers=".$include_verse_numbers."&include_footnotes=".$include_footnotes."&include_footnote_links=".$include_footnote_links."&include_headings=".$include_headings."&include_subheadings=".$include_subheadings."&include_surrounding_chapters=".$include_surrounding_chapters."&include_word_ids=".$include_word_ids."&link_url=".$link_url."&include_audio_link=".$include_audio_link."&audio_format=".$audio_format."&audio_version=".$audio_version."&include_short_copyright=".$include_short_copyright."&include_copyright=".$include_copyright."&output_format=".$output_format."&include_passage_horizontal_lines=".$include_passage_horizontal_lines."&include_heading_horizontal_lines=".$include_passage_horizontal_lines;
-    $url = "http://www.esvapi.org/v2/rest/passageQuery?key=".$key."&passage=".$ref."&".$options;
-    $hash = "esv" . md5($url);
-    $msg .= "Trying for cache entry $hash"; // debug
-    $response = get_transient($hash);
-    if (!$expire_seconds || !$response)
-    {
-      // fetch passage from server
-      $msg .= ", not cached, fetching, expire_seconds=$expire_seconds, expire_seconds_limit=$expire_seconds_limit"; // debug
-      $response = self::get_response($url);
-      if ($expire_seconds && (!$size_limit || strlen($response) < $size_limit))
+    if (preg_match("/^" . self::$ref_msg_symbol . "/", $ref, $a))
       {
-	$msg .= ", fetched, ". strlen($response)." bytes cached as $hash for $expire_seconds seconds"; // debug
-	set_transient($hash, $response, $expire_seconds);
-      } // cache
-      else // debug
-      { // debug
-	$msg .= ", not cached"; // debug
-      } // debug
-      self::stats_record(true); // fetched
-    } // fetch passage
+	$response = substr($ref, 1);
+      }
+    Else
+      {
+	$ref = urlencode($ref);
+	$options = "include_passage_references=".$include_passage_references."&include_first_verse_numbers=".$include_first_verse_numbers."&include_verse_numbers=".$include_verse_numbers."&include_footnotes=".$include_footnotes."&include_footnote_links=".$include_footnote_links."&include_headings=".$include_headings."&include_subheadings=".$include_subheadings."&include_surrounding_chapters=".$include_surrounding_chapters."&include_word_ids=".$include_word_ids."&link_url=".$link_url."&include_audio_link=".$include_audio_link."&audio_format=".$audio_format."&audio_version=".$audio_version."&include_short_copyright=".$include_short_copyright."&include_copyright=".$include_copyright."&output_format=".$output_format."&include_passage_horizontal_lines=".$include_passage_horizontal_lines."&include_heading_horizontal_lines=".$include_passage_horizontal_lines;
+	$url = "http://www.esvapi.org/v2/rest/passageQuery?key=".$key."&passage=".$ref."&".$options;
+	$hash = "esv" . md5($url);
+	$msg .= "Trying for cache entry $hash"; // debug
+	$response = get_transient($hash);
+	if (!$expire_seconds || !$response)
+	  {
+	    // fetch passage from server
+	    $msg .= ", not cached, fetching, expire_seconds=$expire_seconds, expire_seconds_limit=$expire_seconds_limit"; // debug
+	    $response = self::get_response($url);
+	    if ($expire_seconds && (!$size_limit || strlen($response) < $size_limit))
+	      {
+		$msg .= ", fetched, ". strlen($response)." bytes cached as $hash for $expire_seconds seconds"; // debug
+		set_transient($hash, $response, $expire_seconds);
+	      } // cache
+	    else // debug
+	      { // debug
+		$msg .= ", not cached"; // debug
+	      } // debug
+	    self::stats_record(true); // fetched
+	  } // fetch passage
 
-    else self::stats_record(false); // from cache
-    if ($remove)
-    {
-      $fRtn = delete_transient($hash);
-      $msg .= $fRtn?", removed":", remove failed"; // debug
+	else self::stats_record(false); // from cache
+	if ($remove)
+	  {
+	    $fRtn = delete_transient($hash);
+	    $msg .= $fRtn?", removed":", remove failed"; // debug
 
-    } // remove
-
+	  } // remove
+      } // real reference
     //Display the Title as a link to the Post's permalink.
     //return (($container?"<".$container. ($class?" class=\"" . $class:'') . "\">":'') . $response . ($container?"</".$container.">":'');
     return ($debug?nl2br("[$msg]"):'') . ($container?"<".$container. ($class?" class=\"" . $class:'') . "\">":'') . $response . ($container?"</".$container.">":'');
