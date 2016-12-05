@@ -7,10 +7,7 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.0.26
-=======
-Version: 1.0.29
->>>>>>> b192ab2... Attempt to view README from settings page.
+Version: 1.0.27
 Requires at least: 2.7
 Tested up to: 4.6.1
 Stable tag: 1.0.2
@@ -105,7 +102,7 @@ reset stats on save if checked, checkbox clear when reloaded.  Confirm message a
 
 class esv_shortcode_class
 {
-  public static $version = '1.0.26';
+  public static $version = '1.0.27';
   public static $ref_msg_symbol = '@'; // Symbol that indicates that a passage "reference" is a message to be output verbatim.
   public static $options_version = 1;  // version of the options structure
   public static $default_expire_seconds = "1w";  // default expiration time, 0 = no caching
@@ -276,7 +273,39 @@ class esv_shortcode_class
   // Display the admin options page, passed to add_options_page.
   public static function esv_shortcode_options_page()
   {
-?> <div class="wrap"> <h2>ESV Bible Shortcode plugin v<?php echo self::$version;?></h2> <p>Options relating to the ESV Bible Shortcode Plugin.</p><br/>
+?> <div class="wrap"><h2>ESV Bible Shortcode plugin v<?php echo self::$version;?></h2>
+<?php
+    if (isset($_GET['viewreadme']) && $_GET['viewreadme'])
+      {
+	// Display plugin README file.
+	// plugin_path was introduced in WordPress 2.8.
+	$readmefn = trailingslashit(dirname(__FILE__))."readme.txt";
+	if (function_exists('readme_parser'))
+	  {
+	    $s = readme_parser(array(), "ESV Bible Shortcode for WordPress");
+	    //echo "<p>length of string returned by readme_parser is " . strlen($s) . "</p>";
+	    echo $s;
+	  }
+	  else
+	    {
+	    // Display unprocessed README.
+	    echo "<p>This is the unprocessed README file.</p><pre>";
+	    //ob_clean();
+	    //flush();
+	    //echo "<p>Looking for $readmefn</p>"; // debug
+	    $fp = fopen($readmefn, 'r');
+	    while (!feof($fp))
+	      {
+		echo htmlspecialchars(fgets($fp, 1024))."<br/>";
+	      } // while not eof
+	    fclose($fp);
+	    //readfile($readmefn);
+	    echo "</pre>";
+	    } // else display unprocessed README
+      } // view README
+    else
+      {
+    ?><p>Options relating to the ESV Bible Shortcode Plugin.</p><br/>
 <?php
     $opts = self::get_opts();
     // echo "<p>opts = " . print_r($opts, true) . "</p>"; // debug
@@ -314,8 +343,10 @@ John 1
 </em>)</small>
  </form>
 
-			<a href="<?php echo plugins_url('readme.txt', __FILE__);?>" target="_blank">View the plugin README</a>
-</div>
+			<a href="?page=esv-bible-shortcode-for-wordpress%2Fesv-shortcode.php&viewreadme=true" target="_blank">View the plugin README</a>
+			<?php
+			} // else show options page
+?></div>
 	<?php
   } // esv_shortcode_options_page
 

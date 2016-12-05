@@ -5,7 +5,7 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd, campg2003
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.0.26
+Version: 1.0.27
 Requires at least: 2.7
 Tested up to: 4.6.1
 Stable tag: 1.0.2
@@ -221,6 +221,9 @@ This shortcode takes the following options: scripture, passage, expire_seconds, 
 
 == Changelog ==
 
+= 1.0.27 =
+* Adds a link on the options page to view the plugin README.  If the Plugin README Parser plugin V1.3.5.1 (my locally modified version) is installed, displays the README as HTML.  Otherwise displays it as text.
+
 = 1.0.26 =
 * If a passage name containing a date format code is not found, the format codes are removed and the resulting passage name is used.
 
@@ -268,6 +271,9 @@ This shortcode takes the following options: scripture, passage, expire_seconds, 
 * Added remove option.
 
 == Upgrade Notice ==
+
+= 1.0.27 =
+Adds a link on the options page to view the plugin README.  If the lugin README Parser plugin V1.3.5.1 is installed, displays as HTML, otherwise as raw text.
 
 = 1.0.26 =
 If a passage name containing a date format code is not found, the format codes are removed and the resulting passage name is used.
