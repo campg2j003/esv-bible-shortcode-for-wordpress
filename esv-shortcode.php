@@ -9,7 +9,7 @@ Contributors: calebzahnd
 Tags: shortcode, Bible, church, English Standard Version, scripture
 Version: 1.0.27
 Requires at least: 2.7
-Tested up to: 4.6.1
+Tested up to: 4.7
 Stable tag: 1.0.2
 */
   // see also version at start of class esv_shortcode
