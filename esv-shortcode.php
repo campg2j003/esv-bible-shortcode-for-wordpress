@@ -727,45 +727,25 @@ John 1
 
 	  // Last (%w) or next (%W) Sunday.
 
-	  $sWeek = strftime("%j", $iTime) - strftime("%w", $iTime);   // %j = day of year, %w = day of week (0-6, 0=sun)
+	  $sWeekDay = strftime("%w", $iTime);   // %w = day of week (0-6, 0=sun)
 
-	  // $sWeek is probably an integer rather than a string because of the arithmetic minus.
-
-	  //$this->msg("  Initial \$sWeek (Julian day of last Sunday) = $sWeek");   // debug
+	  //$this->msg("\$sWeekDay = $sWeekDay");   // debug
 
 
 
-	  if ($sCode == "%W") $sWeek += 7;
 
 	  $sNum = $sNum?$sNum:0;
+	  $iDayOffset = - $sWeekDay + $sNum;
+	  if ($sCode == "%W") $iDayOffset += 7;
 
-	  // $sWeek = Julian day of last (%w) or next (%W) Sunday, $sNum is day offset in week (1 = Monday).
 
-	  //$this->msg("Calling strptime with " . $sWeek . strftime(" %Y", $iTime));   // debug
+	  // $iDayOffset = day offset to last (%w) or next (%W) Sunday.
 
-	  $aTm = strptime($sWeek . strftime(" %Y", $iTime), "%j %Y");
-
-	  //$this->msg("  Initial aTm has count " . count($aTm) . ", = " . print_r($aTm, true));   // debug
-
-	  // We add $sNum here because we are most likely to get the date system's protection for odd values of $sNum, although in this case that is unlikely.
-
-	  if ($sNum) $aTm['tm_mday'] += $sNum;
-
+	  $iTime += $iDayOffset * DAY_IN_SECONDS;
 	}  // if %w or %W
 
       }   // "time" spec
 
-      // Make the time stamp
-
-      if ($aTm)
-
-      {
-
-	extract($aTm);
-
-	$iTime = mktime(0, 0, 0, intval($tm_mon) + 1, intval($tm_mday), intval($tm_year) + 1900);
-
-      }   // if $aTm
 
     }   // if $sTm
     return $iTime;
