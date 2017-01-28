@@ -20,7 +20,7 @@ The plugin provides an options page where the default expiration time, maximum e
 
 On the options page you can also define a list of passage names and their associated scripture references.  You can then reference the passage by its name using the 'passage' attribute in place of the 'scripture' attribute.  The 'passage' attribute expands strfTime codes so it is possible to have passage names like junscripture or 0529selection and automatically reference them.  This expansion facility has the ability to specify that the date that should be used is the previous or next Sunday, so in 2014 you could define a passage named jun29passage.  Then if you use a shortcode like
 
-[esv passage='%b%dpassage(%W)']
+    [esv passage='%b%dpassage(%W)']
 
 it would be displayed during the previous week.
 
@@ -45,20 +45,26 @@ To uninstall, go to the Plugin Management page and deactivate, then delete the p
 
 == Usage ==
 
-The simplest usage of the plugin is to insert the '[esv]' shortcode into your page or post, using the attributes listed below. These attributes pretty much mirror those on the ESV API.
+The simplest usage of the plugin is to insert the `[esv]` shortcode into your page or post, using the attributes listed below. These attributes pretty much mirror those on the ESV API.
 
-[esv scripture='John 3:16-21']
+    [esv scripture='John 3:16-21']
 
 If you have defined one or more passage names on the options page, you can also use:
 
-[esv passage='passagename']
+    [esv passage='passagename']
 
 If 'passagename' is defined as 'john 3:16-21', the output would be the same as the above.
 
-* NOTE: For reasons that should be obvious, either the scripture or passage attribute is required, (and is the only required attribute.)
+You can specify several names separated by semicolons:
+
+    [esv passage='name1;name2']
+
+They will be tried in order until a defined passage is found.
+
+NOTE: For reasons that should be obvious, either the scripture or passage attribute is required, (and is the only required attribute.)
 
 
-**Optional Attributes:**
+= Optional Attributes: =
 
 'container' // Default: 'span'.
 The html tag to wrap your scripture in.
@@ -164,7 +170,9 @@ It has been tested with these strings:
 * test%m%d(%w2) and test%m%d(%W2) which verify that the day offset works.
 * test%bns(%w) which produces a name like testjunns
 
-**Useful strfTime formatting characters**:
+If several passage names are specified, they are all tried with date codes expanded.  If no match is found, they are then tried with date codes removed.
+
+= Useful strfTime formatting characters =
 
 <table>
 <tr><td>%b</td><td>Abbreviated month name</td></tr>
@@ -175,7 +183,7 @@ It has been tested with these strings:
 <tr><td>%A</td><td>Full day of the week</td></tr>
 </table>
 
-**Examples**
+= Examples =
 
 We use the Lectionary readings in our worship service.  We also have a "Gospel in a Nutshell" passage for each month.  We produce a spreadsheet with columns for the four lectionary readings and the nutshell passage.  I wrote a Python program that converts the tab-delimited form of this spreadsheet to a file with lines like:
 
@@ -189,29 +197,64 @@ We use the Lectionary readings in our worship service.  We also have a "Gospel i
 
 Shortcodes like
 
-    [esv passage='lec%b%dps']  
-    [esv passage='lec%b%dot']  
-    [esv passage='lec%b%dnt']  
-    [esv passage='lec%b%dgs']  
-    [esv passage='%bns']
+    [esv passage='lec%b%dps(%W)']  
+    [esv passage='lec%b%dot(%W)']  
+    [esv passage='lec%b%dnt(%W)']  
+    [esv passage='lec%b%dgs(%W)']  
+    [esv passage='%bns(%W)']
 
-will display the appropriate passages.
+will display the appropriate passages during the week before the specified dates.
+
+If you have a passage that should be used all month except for a couple of weeks, you can specify passages like:
+
+    jan john 15:12-17
+    jan22 eph2:5-11
+
+and write something like:
+
+    [esv passage='%b%d(%W);%b(%W)']
+
+and the John passage will be displayed all month except for the week before Jan. 22.
+
+You can specify short pieces of text by starting the "reference" with @:
+
+    jan01 @<p>This week we start our study of I Peter.</p>
+    jan @<p>This week we continue our study of I Peter.</p>
+    jan22 @<p>This week we have a special presentation!</p>
+
+    [esv passage="%b%d(%W);%b(%W)"]
+
+will display the appropriate messages.
+
+If the reference is just "@", the empty string is substituted, so you can "remove" the shortcode with a "passage" like:
+
+    default @
+
+and use something like `[esv passage='topic%m%d(%W);default']`
+
+or use the date code stripping feature:
+
+    topic @
+    topic0108 @a topic
+    topic0115 @another topic
+
+    [esv passage='topic%m%d']
 
 == esv_date Shortcode ==
 
 The esv_date shortcode allows you to have the same date code processing performed on a piece of text as is done on the passage name.  The syntax is:
 
-[esv_date date="<date>"]text with date codes[/esv_date]
+    [esv_date date="<date>"]text with date codes[/esv_date]
 
 <date> is the same thing that would appear inside the parentheses of a passage name.
 
 Example:
 
-`[esv_date date="%W"]The scripture passage for %B %d, %Y:[/esv_date]`
+    [esv_date date="%W"]The scripture passage for %B %d, %Y:[/esv_date]
 
 would produce something like
 
-`The scripture passage for July 06, 2014:`
+    The scripture passage for July 06, 2014:
 
 == esv_ref Shortcode ==
 
@@ -223,6 +266,8 @@ This shortcode takes the following options: scripture, passage, expire_seconds, 
 
 = 1.0.27 =
 * Adds a link on the options page to view the plugin README.  If the Plugin README Parser plugin V1.3.5.1 (my locally modified version) is installed, displays the README as HTML.  Otherwise displays it as text.
+* Added handling of multiple passage specs.
+* esv_ref now handles verbatim text passage refs.
 
 = 1.0.26 =
 * If a passage name containing a date format code is not found, the format codes are removed and the resulting passage name is used.
@@ -273,7 +318,7 @@ This shortcode takes the following options: scripture, passage, expire_seconds, 
 == Upgrade Notice ==
 
 = 1.0.27 =
-Adds a link on the options page to view the plugin README.  If the lugin README Parser plugin V1.3.5.1 is installed, displays as HTML, otherwise as raw text.
+Adds a link on the options page to view the plugin README.  If the plugin README Parser plugin V1.3.5.1 is installed, displays as HTML, otherwise as raw text.
 
 = 1.0.26 =
 If a passage name containing a date format code is not found, the format codes are removed and the resulting passage name is used.

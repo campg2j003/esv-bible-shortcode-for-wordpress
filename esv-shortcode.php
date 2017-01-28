@@ -104,6 +104,7 @@ class esv_shortcode_class
 {
   public static $version = '1.0.27';
   public static $ref_msg_symbol = '@'; // Symbol that indicates that a passage "reference" is a message to be output verbatim.
+  public static $psg_spec_sep = ";"; // delimits multiple passage specs in the passage attribute
   public static $options_version = 1;  // version of the options structure
   public static $default_expire_seconds = "1w";  // default expiration time, 0 = no caching
   public static $default_expire_seconds_limit = "30d";
@@ -751,7 +752,47 @@ John 1
     return $iTime;
   } // make_passage_timestamp
 
-
+  // Returns the first defined passage spec from a passage attribute.
+  // @param string $passage The contents of the passage attribute, which contains one or more passage specs separated by self::$psg_spec_sep.
+  // @returns array('psg_name', 'msg') where 'psg_name' is a string The first defined passage spec, or '', and 'msg' is debugging messages.
+  // Each passage spec is checked with date codes expanded.  If a passage is still not found, each passage spec is then checked with date codes removed.
+  public static function get_passage_name($passage)
+  {
+    $passages_list = self::get_opts()['passages_list'];
+    $msg = ''; // debug
+    $psg_name = '';
+    $a = explode(self::$psg_spec_sep, $passage);
+    foreach ($a as $k)
+      {
+	$s = strtolower(self::process_passage_name($k));
+	// don't think $s can be empty here.
+	if (isset($passages_list[$s]))
+	  {
+	    $psg_name = $s;
+	    break;
+	  } // if $s
+      } // foreach $a
+    $msg .= "\$passage='$passage', \$psg_name='$psg_name'\n"; // debug
+    if (empty($psg_name))
+      {
+	$msg .= "$psg_name not set"; // debug
+	foreach ($a as $k)
+	  {
+	    $s = self::strip_passage_datecodes($k);
+	    // debugging: returns an array containing debugging messages and result for debugging
+	    //$arrrtn = self::strip_passage_datecodes($k);
+	    //$s = $arrrtn['rtn'];
+	    //$msg .= $arrrtn['msg'];
+	    $msg .= ", trying with datecodes removed: '$s'\n"; // debug
+	    if (isset($passages_list[$s]))
+	      {
+		$psg_name = $s;
+		break;
+	      }
+	  } // foreach
+      } // if empty($psg_name)
+    return array('psg_name' => $psg_name, 'msg' => $msg);;
+  } // get_passage_name
 
 
 
@@ -828,42 +869,38 @@ John 1
 
     $expire_seconds_limit = array_key_exists('expire_seconds_limit', $opts)?self::expire_to_seconds($opts['expire_seconds_limit']):null;
     if ($expire_seconds_limit)
-    {
-      if ($expire_seconds > $expire_seconds_limit) $expire_seconds = $expire_seconds_limit;
-    } // if $expire_seconds_limit
+      {
+	if ($expire_seconds > $expire_seconds_limit) $expire_seconds = $expire_seconds_limit;
+      } // if $expire_seconds_limit
     $key = isset($opts['access_key'])?$opts['access_key']:"IP";
     $psg_name = '';
     //foreach (array("lec%b", "%b", "%bns") as $k => $v) $msg .= "strfTime($v)='".strfTime($v)."'\n"; // debug
     if ($passage)
-    {
-      $psg_name = strtolower(self::process_passage_name($passage));
-    } // if $passage
-    $msg .= "\$passage='$passage', \$psg_name='$psg_name'\n"; // debug
-    if (!empty($psg_name) && !isset($opts['passages_list'][$psg_name]))
-    {
-      $msg .= "$psg_name not set"; // debug
-      $psg_name = self::strip_passage_datecodes($passage);
-      // debugging
-      //$arrrtn = self::strip_passage_datecodes($passage);
-      //$psg_name = $arrrtn['rtn'];
-      //$msg .= $arrrtn['msg'];
-      $msg .= ", trying with datecodes removed: '$psg_name'\n"; // debug
-    }
+      {
+	//ASSERT: $psg_name == ''
+	$arrRtn = self::get_passage_name($passage);
+	$psg_name = $arrRtn['psg_name'];
+	$msg .= $arrRtn['msg'];
+	unset($arrRtn);
+      } // if $passage
     if (!empty($psg_name) && isset($opts['passages_list'][$psg_name]))
-    {
-      $msg .= "Trying to use passage=$psg_name\n"; // debug
-      $tmp = $opts['passages_list'][$psg_name];
-      $ref = !preg_match('/^\s*#/', $tmp)?
-		       $tmp : $scripture;
-      $msg .= "Using $ref\n"; // debug
-    } // if $passage
+      {
+	$msg .= "Trying to use passage=$psg_name\n"; // debug
+	// Check to see that the associated reference isn't a comment, if it is use $scripture instead.
+	$tmp = $opts['passages_list'][$psg_name];
+	$ref = !preg_match('/^\s*#/', $tmp)?
+	  $tmp : $scripture;
+	$msg .= "Using $ref\n"; // debug
+      } // if $passage
     else
-    {
-      $msg .= "Using scripture attribute: $scripture\n"; // debug
-      $ref = $scripture;
-    } // else no passage name
+      {
+	$msg .= "Using scripture attribute: $scripture\n"; // debug
+	$ref = $scripture;
+      } // else no passage name
+    // If the "reference" isn't a verbatim text message, get the text of the reference.
     if (preg_match("/^" . self::$ref_msg_symbol . "/", $ref, $a))
       {
+	// verbatim text
 	$response = substr($ref, 1);
       }
     Else
@@ -925,7 +962,7 @@ John 1
     extract( shortcode_atts( array(
 				   'scripture'	    			 		=>	'John 3:16',
 				   'passage'	    			 		=>	'',
-				   				   'expire_seconds' => $opts['expire_seconds'],
+				   'expire_seconds' => $opts['expire_seconds'],
 				   'size_limit' => $opts['size_limit'],
 				   'debug' => false,
 				   'remove' => false
@@ -938,97 +975,110 @@ John 1
     $expire_seconds = self::expire_to_seconds($expire_seconds);
     $expire_seconds_limit = array_key_exists('expire_seconds_limit', $opts)?self::expire_to_seconds($opts['expire_seconds_limit']):null;
     if ($expire_seconds_limit)
-    {
-      if ($expire_seconds > $expire_seconds_limit) $expire_seconds = $expire_seconds_limit;
-    } // if $expire_seconds_limit
+      {
+	if ($expire_seconds > $expire_seconds_limit) $expire_seconds = $expire_seconds_limit;
+      } // if $expire_seconds_limit
     $key = isset($opts['access_key'])?$opts['access_key']:"IP";
     $psg_name = '';
     //foreach (array("lec%b", "%b", "%bns") as $k => $v) $msg .= "strfTime($v)='".strfTime($v)."'\n"; // debug
     if ($passage)
-    {
-      $psg_name = strtolower(self::process_passage_name($passage));
-    } // if $passage
+      {
+	$arrRtn = self::get_passage_name($passage);
+	$psg_name = $arrRtn['psg_name'];
+	$msg .= $arrRtn['msg'];
+	unset($arrRtn);
+      } // if $passage
     $msg .= "\$passage='$passage', \$psg_name='$psg_name'\n"; // debug
     if (!empty($psg_name) && isset($opts['passages_list'][$psg_name]))
-    {
-      $msg .= "Trying to use passage=$psg_name\n"; // debug
-      $tmp = $opts['passages_list'][$psg_name];
-      $ref = urlencode(!preg_match('/^\s*#/', $tmp)?
-		       $tmp : $scripture);
-      $msg .= "Using $ref\n"; // debug
-    } // if $passage
+      {
+	$msg .= "Trying to use passage=$psg_name\n"; // debug
+	$tmp = $opts['passages_list'][$psg_name];
+	$ref = !preg_match('/^\s*#/', $tmp)?
+	  $tmp : $scripture;
+	$msg .= "Using $ref\n"; // debug
+      } // if $passage
     else
-    {
-      $msg .= "Using scripture attribute: $scripture\n"; // debug
-      $ref = urlencode($scripture);
-    } // else no passage name
-    $url = "http://www.esvapi.org/v2/rest/queryInfo?key=".$key."&q=".$ref;
-    $hash = "esvr" . md5($url);
-    $msg .= "Trying for cache entry $hash"; // debug
-    $response = get_transient($hash);
-    $resp_error = false;
-    if (!$expire_seconds || !$response)
-    {
-      // fetch passage from server
-      $msg .= ", not cached, fetching, expire_seconds=$expire_seconds, expire_seconds_limit=$expire_seconds_limit"; // debug
-      $resp = self::get_response($url);
-      // $resp is MXL containing information about the passage ref.
-      // $resp must contain: <query-type>passage</query-type>, if invalid verse ref returns <code>ref-not-exist</code> and <readable>message<br/>...</readable>
-      // Can also contain <error>message</error>
-      if (preg_match("|<error>(.*?)</error>|", $resp, $a))
       {
-	$resp_error = true;
-	$response = "Fatal error: {$a[1]}";
-      } // if <error>
-      elseif (!preg_match("|<query-type>passage|", $resp, $a))
+	$msg .= "Using scripture attribute: $scripture\n"; // debug
+	$ref = $scripture;
+      } // else no passage name
+    // If the "reference" isn't a verbatim text message, check the reference.
+    if (preg_match("/^" . self::$ref_msg_symbol . "/", $ref, $a))
       {
-	$resp_error = true;
-	$response = "not a passage ref";
-      } // if not passage ref
-      elseif (preg_match("|<code>ref-not-exist</code>|", $resp, $a))
+	// verbatim text
+	$response = substr($ref, 1);
+      }
+    Else
       {
-	$resp_error = true;
-	$response = "Nonexistent reference";
-      } // if <code>ref-not-exist
-      else
-      {
-	// No elements that indicate an error
-	if (preg_match("|<readable>(.*?)</readable>|", $resp, $a))
-	{
-	  $response = $a[1]; // valid
-	}
-	else
-	{
-	  $resp_error = true;
-	  $response = "Response did not contain a reference";
-	} 
-      } // else no elements that indicate an error
-      if (!$resp_error && $expire_seconds && (!$size_limit || strlen($response) < $size_limit))
-      {
-	$msg .= ", fetched, ". strlen($response)." bytes cached as $hash for $expire_seconds seconds"; // debug
-	set_transient($hash, $response, $expire_seconds);
-      } // cache
-      else // debug
-      { // debug
-	$msg .= ", not cached"; // debug
-	if ($resp_err) $msg .= ", query returned error"; // debug
-      } // debug
-      self::stats_record(true); // fetched
-    } // fetch passage
+	$ref = urlencode($ref);
+	$url = "http://www.esvapi.org/v2/rest/queryInfo?key=".$key."&q=".$ref;
+	$hash = "esvr" . md5($url);
+	$msg .= "Trying for cache entry $hash"; // debug
+	$response = get_transient($hash);
+	$resp_error = false;
+	if (!$expire_seconds || !$response)
+	  {
+	    // fetch passage from server
+	    $msg .= ", not cached, fetching, expire_seconds=$expire_seconds, expire_seconds_limit=$expire_seconds_limit"; // debug
+	    $resp = self::get_response($url);
+	    // $resp is MXL containing information about the passage ref.
+	    // $resp must contain: <query-type>passage</query-type>, if invalid verse ref returns <code>ref-not-exist</code> and <readable>message<br/>...</readable>
+	    // Can also contain <error>message</error>
+	    if (preg_match("|<error>(.*?)</error>|", $resp, $a))
+	      {
+		$resp_error = true;
+		$response = "Fatal error: {$a[1]}";
+	      } // if <error>
+	    elseif (!preg_match("|<query-type>passage|", $resp, $a))
+	      {
+		$resp_error = true;
+		$response = "not a passage ref";
+	      } // if not passage ref
+	    elseif (preg_match("|<code>ref-not-exist</code>|", $resp, $a))
+	      {
+		$resp_error = true;
+		$response = "Nonexistent reference";
+	      } // if <code>ref-not-exist
+	    else
+	      {
+		// No elements that indicate an error
+		if (preg_match("|<readable>(.*?)</readable>|", $resp, $a))
+		  {
+		    $response = $a[1]; // valid
+		  }
+		else
+		  {
+		    $resp_error = true;
+		    $response = "Response did not contain a reference";
+		  } 
+	      } // else no elements that indicate an error
+	    if (!$resp_error && $expire_seconds && (!$size_limit || strlen($response) < $size_limit))
+	      {
+		$msg .= ", fetched, ". strlen($response)." bytes cached as $hash for $expire_seconds seconds"; // debug
+		set_transient($hash, $response, $expire_seconds);
+	      } // cache
+	    else // debug
+	      { // debug
+		$msg .= ", not cached"; // debug
+		if ($resp_err) $msg .= ", query returned error"; // debug
+	      } // debug
+	    self::stats_record(true); // fetched
+	  } // fetch passage
 
-    else self::stats_record(false); // from cache
-    if ($remove)
-    {
-      $fRtn = delete_transient($hash);
-      $msg .= $fRtn?", removed":", remove failed"; // debug
+	else self::stats_record(false); // from cache
+	if ($remove)
+	  {
+	    $fRtn = delete_transient($hash);
+	    $msg .= $fRtn?", removed":", remove failed"; // debug
 
-    } // remove
+	  } // remove
 
-    if ($resp_error)
-    {
-      $msg .= ", error fetching scripture reference: " . $response; // debug
-      $response = "Error fetching scripture reference: " . $response;
-    }
+	if ($resp_error)
+	  {
+	    $msg .= ", error fetching scripture reference: " . $response; // debug
+	    $response = "Error fetching scripture reference: " . $response;
+	  }
+      } // real reference
     return ($debug?nl2br("[$msg]"):'') . $response;
   } // esv_ref
 
