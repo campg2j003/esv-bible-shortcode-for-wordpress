@@ -268,6 +268,7 @@ This shortcode takes the following options: scripture, passage, expire_seconds, 
 * Adds a link on the options page to view the plugin README.  If the Plugin README Parser plugin V1.3.5.1 (my locally modified version) is installed, displays the README as HTML.  Otherwise displays it as text.
 * Added handling of multiple passage specs.
 * esv_ref now handles verbatim text passage refs.
+* Changed functions for system time from time() to the WordPress current_time function.  This makes times to be local time.
 
 = 1.0.26 =
 * If a passage name containing a date format code is not found, the format codes are removed and the resulting passage name is used.

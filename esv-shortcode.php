@@ -157,7 +157,7 @@ class esv_shortcode_class
   // @returns $opts with stats values set to default values.
   public static function stats_defaults($opts)
   {
-    $time = time();
+    $time = current_time('timestamp');
     $today = $time - $time % DAY_IN_SECONDS;
     $defaults = array(
 	  'hit_count' => 0, // number of shortcode accesses
@@ -181,7 +181,7 @@ class esv_shortcode_class
     $opts['hit_count'] = $opts['hit_count'] + 1;
     if ($fetch)
     {
-      $time = time();
+      $time = current_time('timestamp');
       if (($time - $opts['today']) > DAY_IN_SECONDS)
       {
 	// new day
@@ -685,7 +685,7 @@ John 1
   // @return int timestamp value
   public static function make_passage_timestamp($sTm='')
   {
-    $iTime = time();   // current time as a UNIX time stamp.
+    $iTime = current_time('timestamp');   // current time as a UNIX time stamp.
 
     if (isset($sTm) && $sTm)
 
