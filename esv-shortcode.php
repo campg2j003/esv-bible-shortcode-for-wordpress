@@ -7,9 +7,9 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.0.27
+Version: 1.0.28
 Requires at least: 2.7
-Tested up to: 4.7
+Tested up to: 4.9.1
 Stable tag: 1.0.2
 */
   // see also version at start of class esv_shortcode
@@ -102,13 +102,15 @@ reset stats on save if checked, checkbox clear when reloaded.  Confirm message a
 
 class esv_shortcode_class
 {
-  public static $version = '1.0.27';
+  public static $version = '1.0.28';
   public static $ref_msg_symbol = '@'; // Symbol that indicates that a passage "reference" is a message to be output verbatim.
   public static $psg_spec_sep = ";"; // delimits multiple passage specs in the passage attribute
   public static $options_version = 1;  // version of the options structure
   public static $default_expire_seconds = "1w";  // default expiration time, 0 = no caching
   public static $default_expire_seconds_limit = "30d";
   public static $default_size_limit = 0; // limit for cached entry size, 0 is no limit
+  public static $apiv2_psg_url = "http://www.esvapi.org/v2/rest/passageQuery";
+  public static $apiv2_query_url = "http://www.esvapi.org/v2/rest/queryInfo";
 
 
   public static $aMults = array('s' => 1,
@@ -326,7 +328,7 @@ class esv_shortcode_class
     </form>
       <p><a href="http://www.esvapi.org/#conditions" target="_blank">Conditions of use of ESV scripture</a></p>
 	<p>Below is a search form to search the ESV Bible.  It does not use the plugin, but it can help you check the syntax of scripture references.</p>
-<form action="http://www.esvapi.org/v2/rest/passageQuery" 
+	<form action="<?php self::$apiv2_psg_url?>"
   id="esvsearchform" method="get" target="_blank">
  
   <input type="hidden" name="key" value="<?php
@@ -358,7 +360,7 @@ John 1
     $options = self::get_opts();
     if (!array_key_exists('access_key', $input) || empty($input['access_key']))
     {
-      $input['access_key'] = "IP";
+      $input['access_key'] = "test";
     } // if access_key
     // Copy these options.
     foreach (array('expire_seconds_limit', 'expire_seconds', 'size_limit', 'access_key', 'chkreset') as $i => $opt)
@@ -447,7 +449,7 @@ John 1
   public static function access_key_field($args)
   {
     $options = self::get_opts();
-    echo "<input id='esv_shortcode_access_key' name='esv_shortcode_options[access_key]' size='40' type='text' value='{$options['access_key']}' /><br>(default = IP, which uses your IP address)";
+    echo "<input id='esv_shortcode_access_key' name='esv_shortcode_options[access_key]' size='40' type='text' value='{$options['access_key']}' /><br>(default = test)";
   } // access_key_field
 
   public static function chkreset_field($args)
@@ -569,7 +571,7 @@ John 1
     //return ""; // debug
     $opts = self::get_opts();
     //add_settings_error('esv_shortcode_options', 'checking_ref', "<p>Checking $ref</p>"); // debug
-    $url = "http://www.esvapi.org/v2/rest/queryInfo?key={$opts['access_key']}&q='".urlencode($ref)."'";
+    $url = self::$apiv2_query_url."?key={$opts['access_key']}&q='".urlencode($ref)."'";
     $resp = self::get_response($url);
     // $resp is MXL containing information about the passage ref.
     // $resp must contain: <query-type>passage</query-type>, if invalid verse ref returns <code>ref-not-exist</code> and <readable>message<br/>...</readable>
@@ -872,7 +874,6 @@ John 1
       {
 	if ($expire_seconds > $expire_seconds_limit) $expire_seconds = $expire_seconds_limit;
       } // if $expire_seconds_limit
-    $key = isset($opts['access_key'])?$opts['access_key']:"IP";
     $psg_name = '';
     //foreach (array("lec%b", "%b", "%bns") as $k => $v) $msg .= "strfTime($v)='".strfTime($v)."'\n"; // debug
     if ($passage)
@@ -907,7 +908,8 @@ John 1
       {
 	$ref = urlencode($ref);
 	$options = "include_passage_references=".$include_passage_references."&include_first_verse_numbers=".$include_first_verse_numbers."&include_verse_numbers=".$include_verse_numbers."&include_footnotes=".$include_footnotes."&include_footnote_links=".$include_footnote_links."&include_headings=".$include_headings."&include_subheadings=".$include_subheadings."&include_surrounding_chapters=".$include_surrounding_chapters."&include_word_ids=".$include_word_ids."&link_url=".$link_url."&include_audio_link=".$include_audio_link."&audio_format=".$audio_format."&audio_version=".$audio_version."&include_short_copyright=".$include_short_copyright."&include_copyright=".$include_copyright."&output_format=".$output_format."&include_passage_horizontal_lines=".$include_passage_horizontal_lines."&include_heading_horizontal_lines=".$include_passage_horizontal_lines;
-	$url = "http://www.esvapi.org/v2/rest/passageQuery?key=".$key."&passage=".$ref."&".$options;
+	$key = isset($opts['access_key'])?$opts['access_key']:"test";
+	$url = self::$apiv2_psg_url."?key=".$key."&passage=".$ref."&".$options;
 	$hash = "esv" . md5($url);
 	$msg .= "Trying for cache entry $hash"; // debug
 	$response = get_transient($hash);
@@ -978,7 +980,7 @@ John 1
       {
 	if ($expire_seconds > $expire_seconds_limit) $expire_seconds = $expire_seconds_limit;
       } // if $expire_seconds_limit
-    $key = isset($opts['access_key'])?$opts['access_key']:"IP";
+    $key = isset($opts['access_key'])?$opts['access_key']:"test";
     $psg_name = '';
     //foreach (array("lec%b", "%b", "%bns") as $k => $v) $msg .= "strfTime($v)='".strfTime($v)."'\n"; // debug
     if ($passage)
@@ -1011,7 +1013,7 @@ John 1
     Else
       {
 	$ref = urlencode($ref);
-	$url = "http://www.esvapi.org/v2/rest/queryInfo?key=".$key."&q=".$ref;
+	$url = self::$apiv2_query_url."?key=".$key."&q=".$ref;
 	$hash = "esvr" . md5($url);
 	$msg .= "Trying for cache entry $hash"; // debug
 	$response = get_transient($hash);
