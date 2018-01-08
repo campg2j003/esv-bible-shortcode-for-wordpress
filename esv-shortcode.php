@@ -7,7 +7,7 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.0.28
+Version: 1.1.1
 Requires at least: 2.7
 Tested up to: 4.9.1
 Stable tag: 1.0.2
@@ -102,7 +102,7 @@ reset stats on save if checked, checkbox clear when reloaded.  Confirm message a
 
 class esv_shortcode_class
 {
-  public static $version = '1.0.28';
+  public static $version = '1.1.1';
   public static $ref_msg_symbol = '@'; // Symbol that indicates that a passage "reference" is a message to be output verbatim.
   public static $psg_spec_sep = ";"; // delimits multiple passage specs in the passage attribute
   public static $options_version = 1;  // version of the options structure
@@ -111,6 +111,8 @@ class esv_shortcode_class
   public static $default_size_limit = 0; // limit for cached entry size, 0 is no limit
   public static $apiv2_psg_url = "http://www.esvapi.org/v2/rest/passageQuery";
   public static $apiv2_query_url = "http://www.esvapi.org/v2/rest/queryInfo";
+  public static $apiv3_html_url = "https://api.esv.org/v3/passage/html/";
+  public static $apiv3_text_url = "https://api.esv.org/v3/passage/text/";
 
 
   public static $aMults = array('s' => 1,
@@ -568,7 +570,7 @@ John 1
   // @return If okay, returns '', otherwise returns error message
   public static function ref_error($ref)
   {
-    //return ""; // debug
+    return ""; // debug
     $opts = self::get_opts();
     //add_settings_error('esv_shortcode_options', 'checking_ref', "<p>Checking $ref</p>"); // debug
     $url = self::$apiv2_query_url."?key={$opts['access_key']}&q='".urlencode($ref)."'";
@@ -802,13 +804,25 @@ John 1
   // Fetch a response from a remote server.
   // @param $url string Complete URL to fetch.
   // @returns string Response text.
-  public static function get_response($url)
+  public static function get_response($url, $headers='')
   {
+    $msg = '[get_response: '; // debug
     $ch = curl_init($url); 
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    if (!empty($headers))
+      {
+	$msg .= " adding headers " . print_r($headers, true). "\n"; // debug
+	curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+      }
     $response = curl_exec($ch);
+    if (curl_errno($ch)) // debug
+      {  // debug
+	$msg .= "CURL error: " . curl_error($ch) . "\n"; // debug
+      } // debug error
+    $msg .= "response code: " . curl_getinfo($ch, CURLINFO_RESPONSE_CODE) . "\n"; // debug
     curl_close($ch);
-    return $response;
+    //return $response;
+    return array('msg' => $msg, 'response' => $response);
   } // get_response
 
 
@@ -907,17 +921,32 @@ John 1
     Else
       {
 	$ref = urlencode($ref);
-	$options = "include_passage_references=".$include_passage_references."&include_first_verse_numbers=".$include_first_verse_numbers."&include_verse_numbers=".$include_verse_numbers."&include_footnotes=".$include_footnotes."&include_footnote_links=".$include_footnote_links."&include_headings=".$include_headings."&include_subheadings=".$include_subheadings."&include_surrounding_chapters=".$include_surrounding_chapters."&include_word_ids=".$include_word_ids."&link_url=".$link_url."&include_audio_link=".$include_audio_link."&audio_format=".$audio_format."&audio_version=".$audio_version."&include_short_copyright=".$include_short_copyright."&include_copyright=".$include_copyright."&output_format=".$output_format."&include_passage_horizontal_lines=".$include_passage_horizontal_lines."&include_heading_horizontal_lines=".$include_passage_horizontal_lines;
+	if ($output_format == "html")
+	  {
+	    $url_prefix = self::$apiv3_html_url;
+	  }
+	else
+	  {
+	    $url_prefix = self::$apiv3_text_url;
+	  }
+	$options = "include-passage-references=".$include_passage_references."&include-first-verse-numbers=".$include_first_verse_numbers."&include-verse-numbers=".$include_verse_numbers."&include-footnotes=".$include_footnotes."&include-footnote-links=".$include_footnote_links."&include-headings=".$include_headings."&include-subheadings=".$include_subheadings."&include-surrounding-chapters=".$include_surrounding_chapters."&include-word-ids=".$include_word_ids."&link-url=".$link_url."&include-audio-link=".$include_audio_link."&audio-format=".$audio_format."&audio-version=".$audio_version."&include-short-copyright=".$include_short_copyright."&include-copyright=".$include_copyright."&include-passage-horizontal-lines=".$include_passage_horizontal_lines."&include-heading-horizontal-lines=".$include_passage_horizontal_lines;
 	$key = isset($opts['access_key'])?$opts['access_key']:"test";
-	$url = self::$apiv2_psg_url."?key=".$key."&passage=".$ref."&".$options;
-	$hash = "esv" . md5($url);
+	$url = $url_prefix."?q=".$ref."&".$options;
+	$hash = "esv" . md5($output_format."&".$ref."&".$options);
 	$msg .= "Trying for cache entry $hash"; // debug
 	$response = get_transient($hash);
 	if (!$expire_seconds || !$response)
 	  {
 	    // fetch passage from server
-	    $msg .= ", not cached, fetching, expire_seconds=$expire_seconds, expire_seconds_limit=$expire_seconds_limit"; // debug
-	    $response = self::get_response($url);
+	    $msg .= ", not cached, fetching, expire_seconds=$expire_seconds, expire_seconds_limit=$expire_seconds_limit, url=$url"; // debug
+	    $arrrtn = self::get_response($url, array("Accept: application/json", "Authorization: Token ".$key));
+	    $resp = $arrrtn['response'];
+	    $msg .= $arrrtn['msg'];
+	    $msg .= "\nresp=$resp\n"; // debug
+	    // ?? response is JSON, need to pull the text out and check for errors.
+	    $json = json_decode($resp, true); // true makes elements to be returned as items of an associative array
+	    $msg .= "json = " . print_r($json, true) . "\n"; // debug
+	    $response = $json['passages'][0]; // only first passage of a multi-passage reference
 	    if ($expire_seconds && (!$size_limit || strlen($response) < $size_limit))
 	      {
 		$msg .= ", fetched, ". strlen($response)." bytes cached as $hash for $expire_seconds seconds"; // debug
@@ -960,6 +989,7 @@ John 1
   // @param $attr array can contain the following options (same as for function esv): scripture, passage, expire_seconds, size_limit, debug, remove.
   public static function esv_ref($atts)
   {
+    //return ("{not implemented for API V3}");
     $opts = self::get_opts();
     extract( shortcode_atts( array(
 				   'scripture'	    			 		=>	'John 3:16',
@@ -1013,8 +1043,8 @@ John 1
     Else
       {
 	$ref = urlencode($ref);
-	$url = self::$apiv2_query_url."?key=".$key."&q=".$ref;
-	$hash = "esvr" . md5($url);
+	$url = self::$apiv3_html_url."?q=".$ref;
+	$hash = "esvr" . md5($ref);
 	$msg .= "Trying for cache entry $hash"; // debug
 	$response = get_transient($hash);
 	$resp_error = false;
@@ -1022,7 +1052,10 @@ John 1
 	  {
 	    // fetch passage from server
 	    $msg .= ", not cached, fetching, expire_seconds=$expire_seconds, expire_seconds_limit=$expire_seconds_limit"; // debug
-	    $resp = self::get_response($url);
+	    $arrrtn = self::get_response($url, array("Accept: application/json", "Authorization: Token ".$key));
+	    $resp = $arrrtn['response'];
+	    $msg .= $arrrtn['msg'];
+	    /* The following code was for API V2.
 	    // $resp is MXL containing information about the passage ref.
 	    // $resp must contain: <query-type>passage</query-type>, if invalid verse ref returns <code>ref-not-exist</code> and <readable>message<br/>...</readable>
 	    // Can also contain <error>message</error>
@@ -1054,6 +1087,15 @@ John 1
 		    $response = "Response did not contain a reference";
 		  } 
 	      } // else no elements that indicate an error
+// End API V2 code
+*/
+	    $json = json_decode($resp, true);
+	    $response = $json['canonical'];
+	    if (empty($response))
+	      {
+		$resp_error = true;
+		$response = "Response did not contain a reference";
+	      }
 	    if (!$resp_error && $expire_seconds && (!$size_limit || strlen($response) < $size_limit))
 	      {
 		$msg .= ", fetched, ". strlen($response)." bytes cached as $hash for $expire_seconds seconds"; // debug

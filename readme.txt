@@ -5,7 +5,7 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd, campg2003
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.0.28
+Version: 1.1.0
 Requires at least: 2.7
 Tested up to: 4.9.1
 Stable tag: 1.0.2
