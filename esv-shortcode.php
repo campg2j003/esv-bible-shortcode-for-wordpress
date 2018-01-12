@@ -7,7 +7,7 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.1.2
+Version: 1.1.3
 Requires at least: 2.7
 Tested up to: 4.9.1
 Stable tag: 1.0.2
@@ -102,7 +102,7 @@ reset stats on save if checked, checkbox clear when reloaded.  Confirm message a
 
 class esv_shortcode_class
 {
-  public static $version = '1.1.2';
+  public static $version = '1.1.3';
   public static $ref_msg_symbol = '@'; // Symbol that indicates that a passage "reference" is a message to be output verbatim.
   public static $psg_spec_sep = ";"; // delimits multiple passage specs in the passage attribute
   public static $options_version = 1;  // version of the options structure
@@ -451,7 +451,7 @@ John 1
   public static function access_key_field($args)
   {
     $options = self::get_opts();
-    echo "<input id='esv_shortcode_access_key' name='esv_shortcode_options[access_key]' size='40' type='text' value='{$options['access_key']}' /><br>(default = test)";
+    echo "<input id='esv_shortcode_access_key' name='esv_shortcode_options[access_key]' size='40' type='text' value='{$options['access_key']}' /><br>(if empty it must be supplied in each invocation)";
   } // access_key_field
 
   public static function chkreset_field($args)
@@ -568,12 +568,13 @@ John 1
 
   // Check a scripture reference.
   // @parm string $ref reference
+  // @parm string access key (default key from options page)
   // @return If okay, returns '', otherwise returns error message
-  public static function ref_error($ref)
+  public static function ref_error($ref, $key='')
   {
     $opts = self::get_opts();
     //add_settings_error('esv_shortcode_options', 'checking_ref', "<p>Checking $ref</p>"); // debug
-    $key = $opts['access_key'];
+    if (empty($key)) $key = $opts['access_key'];
     if (empty($key)) return "no access key";
     $url = self::$apiv3_html_url."?q='".urlencode($ref)."'";
     $arrrtn = self::get_response($url, array("Accept: application/json", "Authorization: Token ".$key));
@@ -862,6 +863,7 @@ John 1
   {
     $opts = self::get_opts();
     extract( shortcode_atts( array(
+				   'key' => '',
 				   'scripture'	    			 		=>	'John 3:16',
 				   'passage'	    			 		=>	'',
 				   'container' 	    				=>	'span',
@@ -945,7 +947,8 @@ John 1
 	    $url_prefix = self::$apiv3_text_url;
 	  }
 	$options = "include-passage-references=".$include_passage_references."&include-first-verse-numbers=".$include_first_verse_numbers."&include-verse-numbers=".$include_verse_numbers."&include-footnotes=".$include_footnotes."&include-footnote-links=".$include_footnote_links."&include-headings=".$include_headings."&include-subheadings=".$include_subheadings."&include-surrounding-chapters=".$include_surrounding_chapters."&include-word-ids=".$include_word_ids."&link-url=".$link_url."&include-audio-link=".$include_audio_link."&audio-format=".$audio_format."&audio-version=".$audio_version."&include-short-copyright=".$include_short_copyright."&include-copyright=".$include_copyright."&include-passage-horizontal-lines=".$include_passage_horizontal_lines."&include-heading-horizontal-lines=".$include_passage_horizontal_lines;
-	$key = isset($opts['access_key'])?$opts['access_key']:"test";
+	if (empty($key) && isset($opts['access_key'])) $key = $opts['access_key'];
+	if (empty($key)) return "no access key";
 	$url = $url_prefix."?q=".$ref."&".$options;
 	$hash = "esv" . md5($output_format."&".$ref."&".$options);
 	$msg .= "Trying for cache entry $hash"; // debug
@@ -1007,7 +1010,8 @@ John 1
     //return ("{not implemented for API V3}");
     $opts = self::get_opts();
     extract( shortcode_atts( array(
-				   'scripture'	    			 		=>	'John 3:16',
+				   'key' => '',				   
+'scripture'	    			 		=>	'John 3:16',
 				   'passage'	    			 		=>	'',
 				   'expire_seconds' => $opts['expire_seconds'],
 				   'size_limit' => $opts['size_limit'],
@@ -1025,7 +1029,8 @@ John 1
       {
 	if ($expire_seconds > $expire_seconds_limit) $expire_seconds = $expire_seconds_limit;
       } // if $expire_seconds_limit
-    $key = isset($opts['access_key'])?$opts['access_key']:"test";
+    if (empty($key) && isset($opts['access_key'])) $key = $opts['access_key'];
+    if (empty($key)) return "no access key";
     $psg_name = '';
     //foreach (array("lec%b", "%b", "%bns") as $k => $v) $msg .= "strfTime($v)='".strfTime($v)."'\n"; // debug
     if ($passage)
