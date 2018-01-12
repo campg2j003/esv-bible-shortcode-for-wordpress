@@ -7,7 +7,7 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.1.1
+Version: 1.1.2
 Requires at least: 2.7
 Tested up to: 4.9.1
 Stable tag: 1.0.2
@@ -102,7 +102,7 @@ reset stats on save if checked, checkbox clear when reloaded.  Confirm message a
 
 class esv_shortcode_class
 {
-  public static $version = '1.1.1';
+  public static $version = '1.1.2';
   public static $ref_msg_symbol = '@'; // Symbol that indicates that a passage "reference" is a message to be output verbatim.
   public static $psg_spec_sep = ";"; // delimits multiple passage specs in the passage attribute
   public static $options_version = 1;  // version of the options structure
@@ -362,7 +362,7 @@ John 1
     $options = self::get_opts();
     if (!array_key_exists('access_key', $input) || empty($input['access_key']))
     {
-      $input['access_key'] = "test";
+      $input['access_key'] = "";
     } // if access_key
     // Copy these options.
     foreach (array('expire_seconds_limit', 'expire_seconds', 'size_limit', 'access_key', 'chkreset') as $i => $opt)
@@ -567,14 +567,19 @@ John 1
   } // process_passages_list
 
   // Check a scripture reference.
+  // @parm string $ref reference
   // @return If okay, returns '', otherwise returns error message
   public static function ref_error($ref)
   {
-    return ""; // debug
     $opts = self::get_opts();
     //add_settings_error('esv_shortcode_options', 'checking_ref', "<p>Checking $ref</p>"); // debug
-    $url = self::$apiv2_query_url."?key={$opts['access_key']}&q='".urlencode($ref)."'";
-    $resp = self::get_response($url);
+    $key = $opts['access_key'];
+    if (empty($key)) return "no access key";
+    $url = self::$apiv3_html_url."?q='".urlencode($ref)."'";
+    $arrrtn = self::get_response($url, array("Accept: application/json", "Authorization: Token ".$key));
+    $resp = $arrrtn['response'];
+    //$msg .= $arrrtn['msg'];
+    /* API V2 code.
     // $resp is MXL containing information about the passage ref.
     // $resp must contain: <query-type>passage</query-type>, if invalid verse ref returns <code>ref-not-exist</code> and <readable>message<br/>...</readable>
     // Can also contain <error>message</error>
@@ -592,7 +597,17 @@ John 1
     {
       return "Nonexistent reference";
     } // if <code>ref-not-exist
-    else return ""; // valid
+// end V2 code
+*/
+    $json = json_decode($resp, true);
+    $response = $json['canonical'];
+    if (empty($response))
+      {
+	$resp_error = true;
+	$response = "Response did not contain a reference";
+      }
+
+    return $response;
   } // ref_error
 
   //  (Adapted from sput-getverse.php v1.0.0 dated 2/25/14.)
