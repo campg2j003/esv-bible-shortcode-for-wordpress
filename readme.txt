@@ -5,9 +5,9 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd, campg2003
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.1.0
+Version: 1.1.4
 Requires at least: 2.7
-Tested up to: 4.9.1
+Tested up to: 4.9.5
 Stable tag: 1.0.2
 
 This plugin uses the ESV Bible Web Service API to provide an easy way to display scripture in the ESV translation using WordPress shortcodes.
@@ -260,9 +260,58 @@ would produce something like
 
 The esv_ref shortcode inserts just the reference.  Although it takes the scripture option, it is intended for use with named passages.  The result is a string containing the reference as expanded by the server.  This reference is cached in the same way as by the esv shortcode, but with a "esvr" prefix.  This allows both a reference and a passage for the same reference to be cached.
 
-This shortcode takes the following options: scripture, passage, expire_seconds, size_limit, debug, remove.  The meanings are the same as for the esv shortcode.
+This shortcode takes the following options: `scripture`, `passage`, `expire_seconds`, `size_limit`, `debug`, `remove`.  The meanings are the same as for the esv shortcode.
+
+== esv_ifpassage Shortcode ==
+This enclosing shortcode allows conditional inclusion of text based on whether a passage name is defined.  It does not check that the reference is valid, only that the passage name is defined.
+
+    [esv_ifpassage passage=passage_name not=false]Enclosed content[/esv_ifpassage]
+
+It takes two options:
+
+* `passage` - the passage name.
+* `not` - if true the content is included if the passage name is not defined.
+
+Shortcodes in the enclosed content are processed.
+
+Example:
+    [esv_ifpassage passage="%bns"]
+    <p>The nutshell passage for [esv_date passage="%Bns"] is</p>[esv passage="%bns"]
+    [/esv_ifpassage]
+    [esv_ifpassage passage="%bns" not=true]
+    <p>Sorry, the gospel in a nutshell passage for this month is not available</p>[/esv_ifpassage]
+    
+
 
 == Changelog ==
+
+= 1.1.4 =
+* Added shortcode esv_ifpassage.
+
+= 1.1.3 =
+* In esv() and esv_ref() there is now an attribute 'key' which defaults to the key stored in the options page.
+* The previous rev was supposed to have removed "test" as the default key, which it only partially did.  This rev removes the rest, so if you want to remove the "key" option you will have to deal with use of "test" as a default.
+
+= 1.1.1 =
+*Removed default access key ("test").
+* Implemented ref_error for V3.  If the "canonical" field of the response is empty, returns an error.  The only thing that causes this is an improper book name.
+* Returns an error if no access key.
+
+=1.1.1 =
+Convert to API V3.
+* Made constants for API V3 HTML and text URL prefixes.
+* Deactivated ref_error.
+* In  esv $url_prefix is set, modified call to get_response, modified get_response.
+* Added return of debug messages from get_response, only implemented for esv() and esv_ref().
+* In esv_ref hash now only includes ref (not additional URL.
+* Commented out V2 code.  Response is now the value of $json['canonical'].  Now only returns error if response is "".
+
+= 1.0.28 =
+Prepare for conversion to API V3.
+* Made constants for API V2 passage and queryInfo URL prefixes.
+* In esv moved getting of $key to just before first access.
+* Changed tested up to to 4.9.1.
+* Changed default access key from IP to test (IP is no longer supported by API v2).
 
 = 1.0.27 =
 * Adds a link on the options page to view the plugin README.  If the Plugin README Parser plugin V1.3.5.1 (my locally modified version) is installed, displays the README as HTML.  Otherwise displays it as text.
