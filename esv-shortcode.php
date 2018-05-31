@@ -576,7 +576,7 @@ John 1
     //add_settings_error('esv_shortcode_options', 'checking_ref', "<p>Checking $ref</p>"); // debug
     if (empty($key)) $key = $opts['access_key'];
     if (empty($key)) return "no access key";
-    $url = self::$apiv3_html_url."?q='".urlencode($ref)."'";
+    $url = self::$apiv3_html_url."?q=".urlencode($ref);
     $arrrtn = self::get_response($url, array("Accept: application/json", "Authorization: Token ".$key));
     $resp = $arrrtn['response'];
     $msg .= $arrrtn['msg'];
@@ -607,6 +607,11 @@ John 1
 	$resp_error = true;
 	$response = "Request for this reference did not contain content";
 	$response .= "[$msg; JSON response: $resp]"; // debug
+      }
+    Else
+      {
+	// $response contains something.  We assume it is a valid reference and set it to '' to signal okay.
+	$response = '';
       }
 
     return $response;
@@ -823,7 +828,7 @@ John 1
   // @returns string Response text.
   public static function get_response($url, $headers='')
   {
-    $msg = '[get_response: '; // debug
+    $msg = '[get_response for ' . $url . ' : '; // debug
     $ch = curl_init($url); 
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     if (!empty($headers))
