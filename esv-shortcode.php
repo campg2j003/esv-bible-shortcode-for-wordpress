@@ -7,9 +7,9 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.1.3
+Version: 1.1.4
 Requires at least: 2.7
-Tested up to: 4.9.1
+Tested up to: 4.9.5
 Stable tag: 1.0.2
 */
   // see also version at start of class esv_shortcode
@@ -102,7 +102,7 @@ reset stats on save if checked, checkbox clear when reloaded.  Confirm message a
 
 class esv_shortcode_class
 {
-  public static $version = '1.1.3';
+  public static $version = '1.1.4';
   public static $ref_msg_symbol = '@'; // Symbol that indicates that a passage "reference" is a message to be output verbatim.
   public static $psg_spec_sep = ";"; // delimits multiple passage specs in the passage attribute
   public static $options_version = 1;  // version of the options structure
@@ -576,10 +576,10 @@ John 1
     //add_settings_error('esv_shortcode_options', 'checking_ref', "<p>Checking $ref</p>"); // debug
     if (empty($key)) $key = $opts['access_key'];
     if (empty($key)) return "no access key";
-    $url = self::$apiv3_html_url."?q='".urlencode($ref)."'";
+    $url = self::$apiv3_html_url."?q=".urlencode($ref);
     $arrrtn = self::get_response($url, array("Accept: application/json", "Authorization: Token ".$key));
     $resp = $arrrtn['response'];
-    //$msg .= $arrrtn['msg'];
+    $msg .= $arrrtn['msg'];
     /* API V2 code.
     // $resp is MXL containing information about the passage ref.
     // $resp must contain: <query-type>passage</query-type>, if invalid verse ref returns <code>ref-not-exist</code> and <readable>message<br/>...</readable>
@@ -605,7 +605,13 @@ John 1
     if (empty($response))
       {
 	$resp_error = true;
-	$response = "Response did not contain a reference";
+	$response = "Request for this reference did not contain content";
+	$response .= "[$msg; JSON response: $resp]"; // debug
+      }
+    Else
+      {
+	// $response contains something.  We assume it is a valid reference and set it to '' to signal okay.
+	$response = '';
       }
 
     return $response;
@@ -734,7 +740,7 @@ John 1
 
 	{
 
-	  // There is a date specified to be used in place of the current date.  This featvre is intended for testing and documentation example generation.
+	  // There is a date specified to be used in place of the current date.  This feature is intended for testing and documentation example generation.
 
 	  $iTime = mktime(0, 0, 0, $sTSMo, $sTSDay, $sTSYr);
 
@@ -822,7 +828,7 @@ John 1
   // @returns string Response text.
   public static function get_response($url, $headers='')
   {
-    $msg = '[get_response: '; // debug
+    $msg = '[get_response for ' . $url . ' : '; // debug
     $ch = curl_init($url); 
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     if (!empty($headers))
@@ -993,7 +999,7 @@ John 1
   // Shortcode: [esv_date]
   // Performs the same date format code substitution on the enclosed content as is done on the passage name.
   // usage: insert a shortcode like [esv_date "%w,20140705"]The passage is for %b %d[/esv_date] in your page.
-  public static function esv_date($atts, $content)
+  public static function esv_date($atts, $content=null)
   {
     extract( shortcode_atts( array(
 				   'date'	    			 		=>	''				   ), $atts ) );
@@ -1146,6 +1152,86 @@ John 1
     return ($debug?nl2br("[$msg]"):'') . $response;
   } // esv_ref
 
+  // Shortcode: [esv_ifpassage not='false'] content [/esv_ifpassage]
+  // Return  enclosed content if a reference is found for the passage name.
+  // 
+  // If the passage name after date expansion has an entry in the
+  // passage list with a non-blank value, the enclosed content is
+  // returned.  Otherwise an empty string is returned.  A leading @ is
+  // trimmed, so an empty verbatim text is considered empty.
+  // Shortcodes are expanded in $content.  If not=true, the sense of
+  // the test is reversed, so content is returned if the passage name
+  // is not defined.  the text of the passage is not fetched, so an
+  // invalid reference is not detected.
+  // @param array $atts
+  // @param string $content
+  // @returns string containing $content or ''.
+  // Example: [esv_ifpassage passage=%bns]<p>The gospel in a nutshell
+  // passage for This month:</p>[esv
+  // passage="%bns"][/esv_ifpassage][esv_ifpassage passage='%bns'
+  // not=true]<p>There is no nutshell passage for this
+  // month.</p>[/esv_ifpassage]
+  public static function esv_ifpassage($atts, $content = null)
+  {
+    $opts = self::get_opts();
+    extract( shortcode_atts( array(
+				   'passage'	    			 		=>	'',
+				   'not'			=>	'false',
+				   'debug' => false,
+				   ), $atts ) );
+    if ($not == 'false') $not = false;
+    if ($debug == 'false') $debug = false;
+    $msg = ""; // debug
+    $psg_name = '';
+    //foreach (array("lec%b", "%b", "%bns") as $k => $v) $msg .= "strfTime($v)='".strfTime($v)."'\n"; // debug
+    if ($passage)
+      {
+	//ASSERT: $psg_name == ''
+	$arrRtn = self::get_passage_name($passage);
+	$psg_name = $arrRtn['psg_name'];
+	$msg .= $arrRtn['msg'];
+	unset($arrRtn);
+      } // if $passage
+    if (!empty($psg_name) && isset($opts['passages_list'][$psg_name]))
+      {
+	$msg .= "Trying to use passage=$psg_name\n"; // debug
+	// Check to see that the associated reference isn't a comment.
+	$tmp = $opts['passages_list'][$psg_name];
+	$ref = !preg_match('/^\s#/', $tmp)?
+	  $tmp : '';
+	$msg .= "Using $ref\n"; // debug
+      } // if $passage_name
+    else
+      {
+	$msg .= "no passage ref\n"; // debug
+	$ref = '';
+      } // else no passage name
+    // If the "reference" isn't a verbatim text message, we have one.
+    if (preg_match("/^" . self::$ref_msg_symbol . "/", $ref, $a))
+      {
+	// verbatim text
+	$response = substr($ref, 1);
+	$msg .= "Got verbatim text $response\n"; // debug
+      }
+    else
+      {
+	$response = $ref;
+      }
+    $keep_content = !empty(trim($response));
+    $keep_content = $not? !$keep_content: $keep_content;
+    $msg .= "Final keep_content = $keep_content\n"; // debug
+    if ($keep_content)
+      {
+	$msg .= "Displaying content $content\n"; // debug
+	return (($debug?nl2br("[$msg]"):'') . do_shortcode($content));
+      } // if response
+    else
+      {
+	return ($debug?nl2br("[$msg-- content skipped]"):'');
+      } // else empty response
+  } // esv_ifpassage
+
+  // after class.
 } // esv_shortcode_class
 
 register_activation_hook(__file__, array('esv_shortcode_class', 'add_defaults'));
@@ -1158,5 +1244,6 @@ add_filter( 'plugin_action_links', array('esv_shortcode_class', 'add_action_link
 add_shortcode('esv', array('esv_shortcode_class', 'esv'));
 add_shortcode('esv_date', array('esv_shortcode_class', 'esv_date'));
 add_shortcode('esv_ref', array('esv_shortcode_class', 'esv_ref'));
+add_shortcode('esv_ifpassage', array('esv_shortcode_class', 'esv_ifpassage'));
 
   ?>
