@@ -7,9 +7,9 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.0.27
+Version: 1.1.5
 Requires at least: 2.7
-Tested up to: 4.7
+Tested up to: 4.9.5
 Stable tag: 1.0.2
 */
   // see also version at start of class esv_shortcode
@@ -102,13 +102,17 @@ reset stats on save if checked, checkbox clear when reloaded.  Confirm message a
 
 class esv_shortcode_class
 {
-  public static $version = '1.0.27';
+  public static $version = '1.1.5';
   public static $ref_msg_symbol = '@'; // Symbol that indicates that a passage "reference" is a message to be output verbatim.
   public static $psg_spec_sep = ";"; // delimits multiple passage specs in the passage attribute
   public static $options_version = 1;  // version of the options structure
   public static $default_expire_seconds = "1w";  // default expiration time, 0 = no caching
   public static $default_expire_seconds_limit = "30d";
   public static $default_size_limit = 0; // limit for cached entry size, 0 is no limit
+  public static $apiv2_psg_url = "http://www.esvapi.org/v2/rest/passageQuery";
+  public static $apiv2_query_url = "http://www.esvapi.org/v2/rest/queryInfo";
+  public static $apiv3_html_url = "https://api.esv.org/v3/passage/html/";
+  public static $apiv3_text_url = "https://api.esv.org/v3/passage/text/";
 
 
   public static $aMults = array('s' => 1,
@@ -326,7 +330,7 @@ class esv_shortcode_class
     </form>
       <p><a href="http://www.esvapi.org/#conditions" target="_blank">Conditions of use of ESV scripture</a></p>
 	<p>Below is a search form to search the ESV Bible.  It does not use the plugin, but it can help you check the syntax of scripture references.</p>
-<form action="http://www.esvapi.org/v2/rest/passageQuery" 
+	<form action="<?php self::$apiv2_psg_url?>"
   id="esvsearchform" method="get" target="_blank">
  
   <input type="hidden" name="key" value="<?php
@@ -358,7 +362,7 @@ John 1
     $options = self::get_opts();
     if (!array_key_exists('access_key', $input) || empty($input['access_key']))
     {
-      $input['access_key'] = "IP";
+      $input['access_key'] = "";
     } // if access_key
     // Copy these options.
     foreach (array('expire_seconds_limit', 'expire_seconds', 'size_limit', 'access_key', 'chkreset') as $i => $opt)
@@ -447,7 +451,7 @@ John 1
   public static function access_key_field($args)
   {
     $options = self::get_opts();
-    echo "<input id='esv_shortcode_access_key' name='esv_shortcode_options[access_key]' size='40' type='text' value='{$options['access_key']}' /><br>(default = IP, which uses your IP address)";
+    echo "<input id='esv_shortcode_access_key' name='esv_shortcode_options[access_key]' size='40' type='text' value='{$options['access_key']}' /><br>(if empty it must be supplied in each invocation)";
   } // access_key_field
 
   public static function chkreset_field($args)
@@ -563,14 +567,20 @@ John 1
   } // process_passages_list
 
   // Check a scripture reference.
+  // @parm string $ref reference
+  // @parm string access key (default key from options page)
   // @return If okay, returns '', otherwise returns error message
-  public static function ref_error($ref)
+  public static function ref_error($ref, $key='')
   {
-    //return ""; // debug
     $opts = self::get_opts();
     //add_settings_error('esv_shortcode_options', 'checking_ref', "<p>Checking $ref</p>"); // debug
-    $url = "http://www.esvapi.org/v2/rest/queryInfo?key={$opts['access_key']}&q='".urlencode($ref)."'";
-    $resp = self::get_response($url);
+    if (empty($key)) $key = $opts['access_key'];
+    if (empty($key)) return "no access key";
+    $url = self::$apiv3_html_url."?q=".urlencode($ref);
+    $arrrtn = self::get_response($url, array("Accept: application/json", "Authorization: Token ".$key));
+    $resp = $arrrtn['response'];
+    $msg .= $arrrtn['msg'];
+    /* API V2 code.
     // $resp is MXL containing information about the passage ref.
     // $resp must contain: <query-type>passage</query-type>, if invalid verse ref returns <code>ref-not-exist</code> and <readable>message<br/>...</readable>
     // Can also contain <error>message</error>
@@ -588,7 +598,23 @@ John 1
     {
       return "Nonexistent reference";
     } // if <code>ref-not-exist
-    else return ""; // valid
+// end V2 code
+*/
+    $json = json_decode($resp, true);
+    $response = $json['canonical'];
+    if (empty($response))
+      {
+	$resp_error = true;
+	$response = "Request for this reference did not contain content";
+	$response .= "[$msg; JSON response: $resp]"; // debug
+      }
+    Else
+      {
+	// $response contains something.  We assume it is a valid reference and set it to '' to signal okay.
+	$response = '';
+      }
+
+    return $response;
   } // ref_error
 
   //  (Adapted from sput-getverse.php v1.0.0 dated 2/25/14.)
@@ -714,7 +740,7 @@ John 1
 
 	{
 
-	  // There is a date specified to be used in place of the current date.  This featvre is intended for testing and documentation example generation.
+	  // There is a date specified to be used in place of the current date.  This feature is intended for testing and documentation example generation.
 
 	  $iTime = mktime(0, 0, 0, $sTSMo, $sTSDay, $sTSYr);
 
@@ -800,13 +826,25 @@ John 1
   // Fetch a response from a remote server.
   // @param $url string Complete URL to fetch.
   // @returns string Response text.
-  public static function get_response($url)
+  public static function get_response($url, $headers='')
   {
+    $msg = '[get_response for ' . $url . ' : '; // debug
     $ch = curl_init($url); 
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    if (!empty($headers))
+      {
+	$msg .= " adding headers " . print_r($headers, true). "\n"; // debug
+	curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+      }
     $response = curl_exec($ch);
+    if (curl_errno($ch)) // debug
+      {  // debug
+	$msg .= "CURL error: " . curl_error($ch) . "\n"; // debug
+      } // debug error
+    $msg .= "response code: " . curl_getinfo($ch, CURLINFO_RESPONSE_CODE) . "\n"; // debug
     curl_close($ch);
-    return $response;
+    //return $response;
+    return array('msg' => $msg, 'response' => $response);
   } // get_response
 
 
@@ -831,6 +869,7 @@ John 1
   {
     $opts = self::get_opts();
     extract( shortcode_atts( array(
+				   'key' => '',
 				   'scripture'	    			 		=>	'John 3:16',
 				   'passage'	    			 		=>	'',
 				   'container' 	    				=>	'span',
@@ -872,7 +911,6 @@ John 1
       {
 	if ($expire_seconds > $expire_seconds_limit) $expire_seconds = $expire_seconds_limit;
       } // if $expire_seconds_limit
-    $key = isset($opts['access_key'])?$opts['access_key']:"IP";
     $psg_name = '';
     //foreach (array("lec%b", "%b", "%bns") as $k => $v) $msg .= "strfTime($v)='".strfTime($v)."'\n"; // debug
     if ($passage)
@@ -906,16 +944,33 @@ John 1
     Else
       {
 	$ref = urlencode($ref);
-	$options = "include_passage_references=".$include_passage_references."&include_first_verse_numbers=".$include_first_verse_numbers."&include_verse_numbers=".$include_verse_numbers."&include_footnotes=".$include_footnotes."&include_footnote_links=".$include_footnote_links."&include_headings=".$include_headings."&include_subheadings=".$include_subheadings."&include_surrounding_chapters=".$include_surrounding_chapters."&include_word_ids=".$include_word_ids."&link_url=".$link_url."&include_audio_link=".$include_audio_link."&audio_format=".$audio_format."&audio_version=".$audio_version."&include_short_copyright=".$include_short_copyright."&include_copyright=".$include_copyright."&output_format=".$output_format."&include_passage_horizontal_lines=".$include_passage_horizontal_lines."&include_heading_horizontal_lines=".$include_passage_horizontal_lines;
-	$url = "http://www.esvapi.org/v2/rest/passageQuery?key=".$key."&passage=".$ref."&".$options;
-	$hash = "esv" . md5($url);
+	if ($output_format == "html")
+	  {
+	    $url_prefix = self::$apiv3_html_url;
+	  }
+	else
+	  {
+	    $url_prefix = self::$apiv3_text_url;
+	  }
+	$options = "include-passage-references=".$include_passage_references."&include-first-verse-numbers=".$include_first_verse_numbers."&include-verse-numbers=".$include_verse_numbers."&include-footnotes=".$include_footnotes."&include-footnote-links=".$include_footnote_links."&include-headings=".$include_headings."&include-subheadings=".$include_subheadings."&include-surrounding-chapters=".$include_surrounding_chapters."&include-word-ids=".$include_word_ids."&link-url=".$link_url."&include-audio-link=".$include_audio_link."&audio-format=".$audio_format."&audio-version=".$audio_version."&include-short-copyright=".$include_short_copyright."&include-copyright=".$include_copyright."&include-passage-horizontal-lines=".$include_passage_horizontal_lines."&include-heading-horizontal-lines=".$include_passage_horizontal_lines;
+	if (empty($key) && isset($opts['access_key'])) $key = $opts['access_key'];
+	if (empty($key)) return "no access key";
+	$url = $url_prefix."?q=".$ref."&".$options;
+	$hash = "esv" . md5($output_format."&".$ref."&".$options);
 	$msg .= "Trying for cache entry $hash"; // debug
 	$response = get_transient($hash);
 	if (!$expire_seconds || !$response)
 	  {
 	    // fetch passage from server
-	    $msg .= ", not cached, fetching, expire_seconds=$expire_seconds, expire_seconds_limit=$expire_seconds_limit"; // debug
-	    $response = self::get_response($url);
+	    $msg .= ", not cached, fetching, expire_seconds=$expire_seconds, expire_seconds_limit=$expire_seconds_limit, url=$url"; // debug
+	    $arrrtn = self::get_response($url, array("Accept: application/json", "Authorization: Token ".$key));
+	    $resp = $arrrtn['response'];
+	    $msg .= $arrrtn['msg'];
+	    $msg .= "\nresp=$resp\n"; // debug
+	    // ?? response is JSON, need to pull the text out and check for errors.
+	    $json = json_decode($resp, true); // true makes elements to be returned as items of an associative array
+	    $msg .= "json = " . print_r($json, true) . "\n"; // debug
+	    $response = implode("\n", $json['passages']); // only first passage of a multi-passage reference
 	    if ($expire_seconds && (!$size_limit || strlen($response) < $size_limit))
 	      {
 		$msg .= ", fetched, ". strlen($response)." bytes cached as $hash for $expire_seconds seconds"; // debug
@@ -944,7 +999,7 @@ John 1
   // Shortcode: [esv_date]
   // Performs the same date format code substitution on the enclosed content as is done on the passage name.
   // usage: insert a shortcode like [esv_date "%w,20140705"]The passage is for %b %d[/esv_date] in your page.
-  public static function esv_date($atts, $content)
+  public static function esv_date($atts, $content=null)
   {
     extract( shortcode_atts( array(
 				   'date'	    			 		=>	''				   ), $atts ) );
@@ -958,9 +1013,11 @@ John 1
   // @param $attr array can contain the following options (same as for function esv): scripture, passage, expire_seconds, size_limit, debug, remove.
   public static function esv_ref($atts)
   {
+    //return ("{not implemented for API V3}");
     $opts = self::get_opts();
     extract( shortcode_atts( array(
-				   'scripture'	    			 		=>	'John 3:16',
+				   'key' => '',				   
+'scripture'	    			 		=>	'John 3:16',
 				   'passage'	    			 		=>	'',
 				   'expire_seconds' => $opts['expire_seconds'],
 				   'size_limit' => $opts['size_limit'],
@@ -978,7 +1035,8 @@ John 1
       {
 	if ($expire_seconds > $expire_seconds_limit) $expire_seconds = $expire_seconds_limit;
       } // if $expire_seconds_limit
-    $key = isset($opts['access_key'])?$opts['access_key']:"IP";
+    if (empty($key) && isset($opts['access_key'])) $key = $opts['access_key'];
+    if (empty($key)) return "no access key";
     $psg_name = '';
     //foreach (array("lec%b", "%b", "%bns") as $k => $v) $msg .= "strfTime($v)='".strfTime($v)."'\n"; // debug
     if ($passage)
@@ -1011,8 +1069,8 @@ John 1
     Else
       {
 	$ref = urlencode($ref);
-	$url = "http://www.esvapi.org/v2/rest/queryInfo?key=".$key."&q=".$ref;
-	$hash = "esvr" . md5($url);
+	$url = self::$apiv3_html_url."?q=".$ref;
+	$hash = "esvr" . md5($ref);
 	$msg .= "Trying for cache entry $hash"; // debug
 	$response = get_transient($hash);
 	$resp_error = false;
@@ -1020,7 +1078,10 @@ John 1
 	  {
 	    // fetch passage from server
 	    $msg .= ", not cached, fetching, expire_seconds=$expire_seconds, expire_seconds_limit=$expire_seconds_limit"; // debug
-	    $resp = self::get_response($url);
+	    $arrrtn = self::get_response($url, array("Accept: application/json", "Authorization: Token ".$key));
+	    $resp = $arrrtn['response'];
+	    $msg .= $arrrtn['msg'];
+	    /* The following code was for API V2.
 	    // $resp is MXL containing information about the passage ref.
 	    // $resp must contain: <query-type>passage</query-type>, if invalid verse ref returns <code>ref-not-exist</code> and <readable>message<br/>...</readable>
 	    // Can also contain <error>message</error>
@@ -1052,6 +1113,15 @@ John 1
 		    $response = "Response did not contain a reference";
 		  } 
 	      } // else no elements that indicate an error
+// End API V2 code
+*/
+	    $json = json_decode($resp, true);
+	    $response = $json['canonical'];
+	    if (empty($response))
+	      {
+		$resp_error = true;
+		$response = "Response did not contain a reference";
+	      }
 	    if (!$resp_error && $expire_seconds && (!$size_limit || strlen($response) < $size_limit))
 	      {
 		$msg .= ", fetched, ". strlen($response)." bytes cached as $hash for $expire_seconds seconds"; // debug
@@ -1082,6 +1152,86 @@ John 1
     return ($debug?nl2br("[$msg]"):'') . $response;
   } // esv_ref
 
+  // Shortcode: [esv_ifpassage not='false'] content [/esv_ifpassage]
+  // Return  enclosed content if a reference is found for the passage name.
+  // 
+  // If the passage name after date expansion has an entry in the
+  // passage list with a non-blank value, the enclosed content is
+  // returned.  Otherwise an empty string is returned.  A leading @ is
+  // trimmed, so an empty verbatim text is considered empty.
+  // Shortcodes are expanded in $content.  If not=true, the sense of
+  // the test is reversed, so content is returned if the passage name
+  // is not defined.  the text of the passage is not fetched, so an
+  // invalid reference is not detected.
+  // @param array $atts
+  // @param string $content
+  // @returns string containing $content or ''.
+  // Example: [esv_ifpassage passage=%bns]<p>The gospel in a nutshell
+  // passage for This month:</p>[esv
+  // passage="%bns"][/esv_ifpassage][esv_ifpassage passage='%bns'
+  // not=true]<p>There is no nutshell passage for this
+  // month.</p>[/esv_ifpassage]
+  public static function esv_ifpassage($atts, $content = null)
+  {
+    $opts = self::get_opts();
+    extract( shortcode_atts( array(
+				   'passage'	    			 		=>	'',
+				   'not'			=>	'false',
+				   'debug' => false,
+				   ), $atts ) );
+    if ($not == 'false') $not = false;
+    if ($debug == 'false') $debug = false;
+    $msg = ""; // debug
+    $psg_name = '';
+    //foreach (array("lec%b", "%b", "%bns") as $k => $v) $msg .= "strfTime($v)='".strfTime($v)."'\n"; // debug
+    if ($passage)
+      {
+	//ASSERT: $psg_name == ''
+	$arrRtn = self::get_passage_name($passage);
+	$psg_name = $arrRtn['psg_name'];
+	$msg .= $arrRtn['msg'];
+	unset($arrRtn);
+      } // if $passage
+    if (!empty($psg_name) && isset($opts['passages_list'][$psg_name]))
+      {
+	$msg .= "Trying to use passage=$psg_name\n"; // debug
+	// Check to see that the associated reference isn't a comment.
+	$tmp = $opts['passages_list'][$psg_name];
+	$ref = !preg_match('/^\s#/', $tmp)?
+	  $tmp : '';
+	$msg .= "Using $ref\n"; // debug
+      } // if $passage_name
+    else
+      {
+	$msg .= "no passage ref\n"; // debug
+	$ref = '';
+      } // else no passage name
+    // If the "reference" isn't a verbatim text message, we have one.
+    if (preg_match("/^" . self::$ref_msg_symbol . "/", $ref, $a))
+      {
+	// verbatim text
+	$response = substr($ref, 1);
+	$msg .= "Got verbatim text $response\n"; // debug
+      }
+    else
+      {
+	$response = $ref;
+      }
+    $keep_content = !empty(trim($response));
+    $keep_content = $not? !$keep_content: $keep_content;
+    $msg .= "Final keep_content = $keep_content\n"; // debug
+    if ($keep_content)
+      {
+	$msg .= "Displaying content $content\n"; // debug
+	return (($debug?nl2br("[$msg]"):'') . do_shortcode($content));
+      } // if response
+    else
+      {
+	return ($debug?nl2br("[$msg-- content skipped]"):'');
+      } // else empty response
+  } // esv_ifpassage
+
+  // after class.
 } // esv_shortcode_class
 
 register_activation_hook(__file__, array('esv_shortcode_class', 'add_defaults'));
@@ -1094,5 +1244,6 @@ add_filter( 'plugin_action_links', array('esv_shortcode_class', 'add_action_link
 add_shortcode('esv', array('esv_shortcode_class', 'esv'));
 add_shortcode('esv_date', array('esv_shortcode_class', 'esv_date'));
 add_shortcode('esv_ref', array('esv_shortcode_class', 'esv_ref'));
+add_shortcode('esv_ifpassage', array('esv_shortcode_class', 'esv_ifpassage'));
 
   ?>
