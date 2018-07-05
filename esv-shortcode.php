@@ -7,7 +7,7 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.1.4
+Version: 1.1.5
 Requires at least: 2.7
 Tested up to: 4.9.5
 Stable tag: 1.0.2
@@ -102,7 +102,7 @@ reset stats on save if checked, checkbox clear when reloaded.  Confirm message a
 
 class esv_shortcode_class
 {
-  public static $version = '1.1.4';
+  public static $version = '1.1.5';
   public static $ref_msg_symbol = '@'; // Symbol that indicates that a passage "reference" is a message to be output verbatim.
   public static $psg_spec_sep = ";"; // delimits multiple passage specs in the passage attribute
   public static $options_version = 1;  // version of the options structure
@@ -970,7 +970,7 @@ John 1
 	    // ?? response is JSON, need to pull the text out and check for errors.
 	    $json = json_decode($resp, true); // true makes elements to be returned as items of an associative array
 	    $msg .= "json = " . print_r($json, true) . "\n"; // debug
-	    $response = $json['passages'][0]; // only first passage of a multi-passage reference
+	    $response = implode("\n", $json['passages']); // only first passage of a multi-passage reference
 	    if ($expire_seconds && (!$size_limit || strlen($response) < $size_limit))
 	      {
 		$msg .= ", fetched, ". strlen($response)." bytes cached as $hash for $expire_seconds seconds"; // debug

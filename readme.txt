@@ -5,9 +5,9 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd, campg2003
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.1.4
+Version: 1.1.5
 Requires at least: 2.7
-Tested up to: 4.9.5
+Tested up to: 4.9.6
 Stable tag: 1.0.2
 
 This plugin uses the ESV Bible Web Service API to provide an easy way to display scripture in the ESV translation using WordPress shortcodes.
@@ -285,6 +285,9 @@ Example:
 
 == Changelog ==
 
+= 1.1.5=
+* Now displays references containing multiple passages again.
+
 = 1.1.4 =
 * Added shortcode esv_ifpassage.
 
@@ -292,7 +295,7 @@ Example:
 * In esv() and esv_ref() there is now an attribute 'key' which defaults to the key stored in the options page.
 * The previous rev was supposed to have removed "test" as the default key, which it only partially did.  This rev removes the rest, so if you want to remove the "key" option you will have to deal with use of "test" as a default.
 
-= 1.1.1 =
+= 1.1.2 =
 *Removed default access key ("test").
 * Implemented ref_error for V3.  If the "canonical" field of the response is empty, returns an error.  The only thing that causes this is an improper book name.
 * Returns an error if no access key.
@@ -366,6 +369,10 @@ Prepare for conversion to API V3.
 * Added remove option.
 
 == Upgrade Notice ==
+
+= 1.1.5 =
+* Converted to use ESV API V3.
+* Added esv_ifpassage shortcode which allows inclusion of text based on resolution of passage names.
 
 = 1.0.27 =
 Adds a link on the options page to view the plugin README.  If the plugin README Parser plugin V1.3.5.1 is installed, displays as HTML, otherwise as raw text.
