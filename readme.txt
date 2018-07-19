@@ -72,7 +72,7 @@ The html tag to wrap your scripture in.
 'class' // Default: 'esv-scripture'.
 The css class to assign to the html container tag. Aids in adding custom CSS to your scripture.
 
-'include_passage_references' // Default: 'true;
+'include_passage_references' // Default: 'true'
 Boolean value to include `<h2>` tags that indicate which passage is being displayed. For example: Isaiah 53:1-5.
 
 'include_first_verse_numbers' // Default: 'false'
