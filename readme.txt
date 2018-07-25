@@ -5,9 +5,9 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd, campg2003
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.1.5
+Version: 1.1.6
 Requires at least: 2.7
-Tested up to: 4.9.6
+Tested up to: 4.9.7
 Stable tag: 1.0.2
 
 This plugin uses the ESV Bible Web Service API to provide an easy way to display scripture in the ESV translation using WordPress shortcodes.
@@ -111,10 +111,10 @@ Takes a value of flash, mp3, real, or wma to indicate the format of the audio. I
 'audio_version' // Default: 'hw'
 Which recording to use. The options are: hw (David Cochran Heath [Hear the Word], complete Bible) mm (Max McLean, complete Bible), ml (Marquis Laughlin, New Testament only), ml-mm (David Cochran Heath for Old Testament, Marquis Laughlin for New Testament), and ml-mm (Max McLean for Old Testament, Marquis Laughlin for New Testament). Only affects the output if audio-format is flash or mp3. (David Cochran Heath and Max McLean's versions are only available in these two formats.)
 
-'include_short_copyright // Default: 'false'
-Each passage from the ESV needs to include the letters "ESV" at the end of the passage. To turn off this behavior, set this option to fals
+'include_short_copyright // Default: set on options page.
+Each passage from the ESV needs to include the letters "ESV" at the end of the passage. To turn off this behavior, set this option to false
 
-'include_copyright' // Default: 'false'
+'include_copyright' // Default: set on options page.
 Show a copyright notice at the bottom of the text. Any page that shows the ESV text from this service needs to include a copyright notice, but you do not need to include it with each passage. Best practice is probably to include the copyright manually on your page, rather than download it every time. This option is mutually exclusive with include-short-copyright, which overrides include-copyright.
 
 'output_format' // Default: 'html'
@@ -285,6 +285,10 @@ Example:
 
 == Changelog ==
 
+= 1.1.6 =
+* Add default copyright option page setting.
+* Add access_key to add_defaults.
+
 = 1.1.5=
 * Now displays references containing multiple passages again.
 
@@ -369,6 +373,9 @@ Prepare for conversion to API V3.
 * Added remove option.
 
 == Upgrade Notice ==
+
+= 1.1.6 =
+* Added default copyright setting to options page.
 
 = 1.1.5 =
 * Converted to use ESV API V3.

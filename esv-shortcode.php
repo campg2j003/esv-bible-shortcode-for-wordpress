@@ -7,108 +7,110 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.1.5
+Version: 1.1.6
 Requires at least: 2.7
-Tested up to: 4.9.5
+Tested up to: 4.9.7
 Stable tag: 1.0.2
 */
   // see also version at start of class esv_shortcode
 
 
 /*
-11/12/16 When a passage reference starts with @, it is treated as a message and is displayed verbatim.  V1.0.25.
-11/11/16 In process_passages_list now does not check passage references that start with #.
+  7/24/18 Added default_copyright option to admin page.  Added access_key to add_defaults.  
+  11/12/16 When a passage reference starts with @, it is treated as a message and is displayed verbatim.  V1.0.25.
+  11/11/16 In process_passages_list now does not check passage references that start with #.
 
-6/27/15 Added ESV search form on the plugin settings page.  This is to aid in checking scripture reference syntax, although it does not use the plugin.  
-6/23/15 Conditions of use link now opens in a new window.
-2/27/15 Replaced SECONDS_IN_DAY with DAY_IN_SECONDS.
-2/24/15 Added esv_ref shortcode.
-Made method add_action_links a static method.
-Removed comment from version line in header.
-Changed version to 1.0.24.
-7/5/14 Previous saved to HG rev 9.
-7/5/14 Moved code that process the (%w...) out of process_passage_name into make_passage_timestamp.
-Added shortcode esv_date.
-7/5/14 Previous saved to HG rev 8.
-7/1/14 Indented code.
-Updated README.
-6/27/14 Updated debugging messages in esv.
-Removed "getopts" from message in admin_init.
-Activated ref_error so new references are checked with the server.  Added debug message displaying when a ref is checked.  Works.  Commented out these debug messages and the ones in validate and process_passages_list that print the passages array.
-Changed version to 1.0.23.
-6/26/14 In process_passage_name changed logic handling "date" to handle missing offset and date.  How did it ever work?
-6/26/14 Added nl2br around debug messages from esv.
-Made comparison of passage names case-insensitive.  (We force stored passage names to lower case and use the lower case of the final passage name to retrieve the passage.  A case-insensitive access would be preferable.
-6/21/14 Fixed passage handling code in esv.
-6/21/14 Added call to process_passage_name to expand date formatting codes.
-6/20/14 Changed code that generates the passages list in the textarea to include passage names.
-Added debugging messages for how scripture is obtained.
+  6/27/15 Added ESV search form on the plugin settings page.  This is to aid in checking scripture reference syntax, although it does not use the plugin.  
+  6/23/15 Conditions of use link now opens in a new window.
+  2/27/15 Replaced SECONDS_IN_DAY with DAY_IN_SECONDS.
+  2/24/15 Added esv_ref shortcode.
+  Made method add_action_links a static method.
+  Removed comment from version line in header.
+  Changed version to 1.0.24.
+  7/5/14 Previous saved to HG rev 9.
+  7/5/14 Moved code that process the (%w...) out of process_passage_name into make_passage_timestamp.
+  Added shortcode esv_date.
+  7/5/14 Previous saved to HG rev 8.
+  7/1/14 Indented code.
+  Updated README.
+  6/27/14 Updated debugging messages in esv.
+  Removed "getopts" from message in admin_init.
+  Activated ref_error so new references are checked with the server.  Added debug message displaying when a ref is checked.  Works.  Commented out these debug messages and the ones in validate and process_passages_list that print the passages array.
+  Changed version to 1.0.23.
+  6/26/14 In process_passage_name changed logic handling "date" to handle missing offset and date.  How did it ever work?
+  6/26/14 Added nl2br around debug messages from esv.
+  Made comparison of passage names case-insensitive.  (We force stored passage names to lower case and use the lower case of the final passage name to retrieve the passage.  A case-insensitive access would be preferable.
+  6/21/14 Fixed passage handling code in esv.
+  6/21/14 Added call to process_passage_name to expand date formatting codes.
+  6/20/14 Changed code that generates the passages list in the textarea to include passage names.
+  Added debugging messages for how scripture is obtained.
   6/20/14 In process_passages_list changed reference checking algorithm to check passage references not in the old list.  Now removes multiple spaces in passage references.
-6/18/14 Fixed syntax errors.  Changed input for passage list to textarea.  Added code to call process_passage_list in esv_shortcode_validate.
-5/7/14 Changed list_lines to implode.
-Added ESV response error checking.
-Corrected uptate_options syntax error.
-4/23/14 Added handling of flag in passage ref retrieval.  Might add debugging to show that a passage ref was used.
-4/22/14 Added process_passage_name.
-In function esv changed $passage to $ref, added option 'passage', and added code to process it; '$ref = ... $scripture' becomes the else clause of this processing.  Does not yet check for a flag character starting a passage reference flagging a syntax error.
-4/21/14 Added access key field in settings section and validate.  Does not need to be in add_defaults.  Changed definition in function esv.
-4/20/14 Added fields section for passages and supporting functions.  Method ref_error must be completed.
-ref_error assumes option 'key' which has not been implemented.
-Added comment in esv_shortcode_options_validate.
-4/4/14 Previous saved to HG rev 7.
-4/2/14 Added method get_response to get the text from the Bible text server.
-Corrected message in esv_options_onsubmit for resetting statistics to not indicate on next activation.  It is done in validate.
-3/29/14 Added settings link.
-3/29/14 Expanded Conditions of Use link text.
-Indented code with a mixture of php-mode and html-mode, tedious process.
-3/29/14 Added label_for arg in args array for adding fields.
-3/28/14 Changed stats_defaults to receive and return an options array.
-Added reset of statistics to esv_shortcode_options_validate.
-Added methods get_opts and update_opts.  Replaced calls to get_option and update_option.
-3/28/14 Added code in esv_shortcode_options_validate to clear was_reset.  For some reason I can't clear it where I write the message.
-onsubmit checking of reset buttons now works.  Added alert for chkresetstats as well.
-Resetting of statistics is not working.
-3/27/14 In stats_record moved new day initialization before incrementing fetch count.
-Added test of chkreset in fnOmSubmit.
-3/27/14 Now displays opts array before form.
-3/24/14 Added stats section.
-3/23/14 Added stats_defaults, stats_record, and stats_write.
-Added code in esv to record stats.
-3/22/14 Added script to ask for confirmation when saving form with reset to defaults is checked.
-Added debug message in options form.
-3/21/14 Changed options page fields so that units info is on a line below the field instead of part of the field name.
-3/20/14 Added conditions of use link in admin page.
-3/19/14 Previous saved to HG rev 4.
+  6/18/14 Fixed syntax errors.  Changed input for passage list to textarea.  Added code to call process_passage_list in esv_shortcode_validate.
+  5/7/14 Changed list_lines to implode.
+  Added ESV response error checking.
+  Corrected uptate_options syntax error.
+  4/23/14 Added handling of flag in passage ref retrieval.  Might add debugging to show that a passage ref was used.
+  4/22/14 Added process_passage_name.
+  In function esv changed $passage to $ref, added option 'passage', and added code to process it; '$ref = ... $scripture' becomes the else clause of this processing.  Does not yet check for a flag character starting a passage reference flagging a syntax error.
+  4/21/14 Added access key field in settings section and validate.  Does not need to be in add_defaults.  Changed definition in function esv.
+  4/20/14 Added fields section for passages and supporting functions.  Method ref_error must be completed.
+  ref_error assumes option 'key' which has not been implemented.
+  Added comment in esv_shortcode_options_validate.
+  4/4/14 Previous saved to HG rev 7.
+  4/2/14 Added method get_response to get the text from the Bible text server.
+  Corrected message in esv_options_onsubmit for resetting statistics to not indicate on next activation.  It is done in validate.
+  3/29/14 Added settings link.
+  3/29/14 Expanded Conditions of Use link text.
+  Indented code with a mixture of php-mode and html-mode, tedious process.
+  3/29/14 Added label_for arg in args array for adding fields.
+  3/28/14 Changed stats_defaults to receive and return an options array.
+  Added reset of statistics to esv_shortcode_options_validate.
+  Added methods get_opts and update_opts.  Replaced calls to get_option and update_option.
+  3/28/14 Added code in esv_shortcode_options_validate to clear was_reset.  For some reason I can't clear it where I write the message.
+  onsubmit checking of reset buttons now works.  Added alert for chkresetstats as well.
+  Resetting of statistics is not working.
+  3/27/14 In stats_record moved new day initialization before incrementing fetch count.
+  Added test of chkreset in fnOmSubmit.
+  3/27/14 Now displays opts array before form.
+  3/24/14 Added stats section.
+  3/23/14 Added stats_defaults, stats_record, and stats_write.
+  Added code in esv to record stats.
+  3/22/14 Added script to ask for confirmation when saving form with reset to defaults is checked.
+  Added debug message in options form.
+  3/21/14 Changed options page fields so that units info is on a line below the field instead of part of the field name.
+  3/20/14 Added conditions of use link in admin page.
+  3/19/14 Previous saved to HG rev 4.
 */
 
 /*
-Testing:
+  Testing:
 
-Options not directly passed to passage server:
-'container' (not included if empty, default if not specified)
-'class' (not included if empty, default if not specified)
-'expire_seconds' (no multiplier, multipliers, verify cache time, capped at size limit)
-'size_limit' (0=no limit, verify passage over size limit not cached.)
-'debug'
-'remove' (if in cache, if not in cache, if fetched should be immediately removed)
+  Options not directly passed to passage server:
+  'container' (not included if empty, default if not specified)
+  'class' (not included if empty, default if not specified)
+  'expire_seconds' (no multiplier, multipliers, verify cache time, capped at size limit)
+  'size_limit' (0=no limit, verify passage over size limit not cached.)
+  'debug'
+  'remove' (if in cache, if not in cache, if fetched should be immediately removed)
 
 
-Admin panel:
-expire_seconds, expire_secondt_limit (default value shown initially, multipliers, what if empty?)
-reset on activation: does not reset when activated if not set, does if set.  Confirm message appears, not saved if cancelled.
-stats: total hits, fetches; max fetches per day)
-reset stats on save if checked, checkbox clear when reloaded.  Confirm message appears, not saved if cancelled.
+  Admin panel:
+  expire_seconds, expire_secondt_limit (default value shown initially, multipliers, what if empty?)
+  reset on activation: does not reset when activated if not set, does if set.  Confirm message appears, not saved if cancelled.
+  stats: total hits, fetches; max fetches per day)
+  reset stats on save if checked, checkbox clear when reloaded.  Confirm message appears, not saved if cancelled.
 */
 
 class esv_shortcode_class
 {
-  public static $version = '1.1.5';
+  public static $version = '1.1.6';
   public static $ref_msg_symbol = '@'; // Symbol that indicates that a passage "reference" is a message to be output verbatim.
   public static $psg_spec_sep = ";"; // delimits multiple passage specs in the passage attribute
   public static $options_version = 1;  // version of the options structure
   public static $default_expire_seconds = "1w";  // default expiration time, 0 = no caching
   public static $default_expire_seconds_limit = "30d";
   public static $default_size_limit = 0; // limit for cached entry size, 0 is no limit
+  public static $default_default_copyright = "short"; // default value for the Default Copyright drop-down setting
   public static $apiv2_psg_url = "http://www.esvapi.org/v2/rest/passageQuery";
   public static $apiv2_query_url = "http://www.esvapi.org/v2/rest/queryInfo";
   public static $apiv3_html_url = "https://api.esv.org/v3/passage/html/";
@@ -141,23 +143,26 @@ class esv_shortcode_class
 
     // The key_exists is because when I introduced chkreset I couldn't get it into the array.  It's a kludge and may not need to be there.    
     if (!is_array($tmp) || !array_key_exists('chkreset', $tmp) || isset($tmp['chkreset']))
-    {
+      {
+		// Either there is no options array or we  are  supposed to reset the options.
+		$arr = array('options_version' => self::$options_version, 'expire_seconds' => self::$default_expire_seconds, 'expire_seconds_limit' => self::$default_expire_seconds_limit, 'size_limit' => self::$default_size_limit, 'was_reset' => isset($tmp['chkreset'])?$tmp['chkreset']: false,
+					 'access_key' => '',
+					 'default_copyright' => self::$default_default_copyright
+					 );
+		$arr['chkreset'] = false;
 
-      $arr = array('options_version' => self::$options_version, 'expire_seconds' => self::$default_expire_seconds, 'expire_seconds_limit' => self::$default_expire_seconds_limit, 'size_limit' => self::$default_size_limit, 'was_reset' => isset($tmp['chkreset'])?$tmp['chkreset']: false,
-		   );
-      $arr['chkreset'] = false;
+		$arr = self::stats_defaults($arr);
+		self::update_opts($arr);
 
-      $arr = self::stats_defaults($arr);
-      self::update_opts($arr);
-
-    } // if
+      } // if
 
   } // add_defaults
 
 
 
 
-  // Set statistics values to their defaults.  // @param array $opts Options array.
+  // Set statistics values to their defaults.  
+  // @param array $opts Options array.
   // @returns $opts with stats values set to default values.
   public static function stats_defaults($opts)
   {
@@ -361,26 +366,30 @@ John 1
     // add_settings_error('esv_shortcode_options', 'enter_validate', "<p>enter validate</p>"); // debug
     $options = self::get_opts();
     if (!array_key_exists('access_key', $input) || empty($input['access_key']))
-    {
-      $input['access_key'] = "";
-    } // if access_key
+	  {
+		$input['access_key'] = "";
+	  } // if access_key
+    if (!array_key_exists('default_copyright', $input) || empty($input['default_copyright']))
+	  {
+		$input['default_copyright'] = self::$default_default_copyright;
+	  } // if default_copyright
     // Copy these options.
-    foreach (array('expire_seconds_limit', 'expire_seconds', 'size_limit', 'access_key', 'chkreset') as $i => $opt)
-    {
-      $options[$opt] = $input[$opt];
-    } // foreach
+    foreach (array('expire_seconds_limit', 'expire_seconds', 'size_limit', 'access_key', 'default_copyright', 'chkreset') as $i => $opt)
+	  {
+		$options[$opt] = $input[$opt];
+	  } // foreach
     $options['was_reset'] = false;
     // If statistics are to be reset, reset them.
     if ($input['chkresetstats'])
-    {
-      $options = self::stats_defaults($options);
-    }
+	  {
+		$options = self::stats_defaults($options);
+	  }
     //add_settings_error('esv_shortcode_options', 'input_settings', "<p>explode passages list text = ".var_export(explode("\n", $input['passages_list_text']), true)."</p>"); // debug
     if (isset($input['passages_list_text']))
-    {
-      //add_settings_error('esv_shortcode_options', 'got_passage', "<p>validate: got passages_list_text = {$input['passages_list_text']}</p>"); // debug
-      $options['passages_list'] = self::process_passages_list($input['passages_list_text']);
-    } // passages_list_text
+	  {
+		//add_settings_error('esv_shortcode_options', 'got_passage', "<p>validate: got passages_list_text = {$input['passages_list_text']}</p>"); // debug
+		$options['passages_list'] = self::process_passages_list($input['passages_list_text']);
+	  } // passages_list_text
     return $options;
   } // esv_shortcode_options_validate
 
@@ -392,22 +401,28 @@ John 1
     // Add settings for V1.0.22 if other settings are present.
     $options = self::get_opts();
     if (is_array($options))
-    {
-      // Make sure expire_seconds_limit and size_limit are in the options.  They might not be there because of updating from v1.0.21 to 1.0.22.  but 1.0.21 didn't have options!
-      // If the options array doesn't exist, this will be taken care of in add_defaults.
-      $need_update = false;
-      if (!array_key_exists('expire_seconds_limit', $options))
-      {
-	$options['expire_seconds_limit'] = self::$default_expire_seconds_limit;
-	$need_update = true;
-      }
-      if (!array_key_exists('size_limit', $options))
-      {
-	$options['size_limit'] = self::$default_size_limit;
-	$need_update = true;
-      }
-      if ($need_update) self::update_opts( $options);
-    } // options exists
+	  {
+		// Make sure expire_seconds_limit and size_limit are in the options.  They might not be there because of updating from v1.0.21 to 1.0.22.  but 1.0.21 didn't have options!
+		// If the options array doesn't exist, this will be taken care of in add_defaults.
+		$need_update = false;
+		if (!array_key_exists('expire_seconds_limit', $options))
+		  {
+			$options['expire_seconds_limit'] = self::$default_expire_seconds_limit;
+			$need_update = true;
+		  }
+		if (!array_key_exists('size_limit', $options))
+		  {
+			$options['size_limit'] = self::$default_size_limit;
+			$need_update = true;
+		  }
+		// If upgrading from prior to 1.1.6
+		if (!array_key_exists('default_copyright', $options))
+		  {
+			$options['default_copyright'] = self::$default_default_copyright;
+			$need_update = true;
+		  }
+		if ($need_update) self::update_opts( $options);
+	  } // options exists
 
     // page fields
     add_settings_section('esv_shortcode_main', 'ESV Shortcode Settings', array('esv_shortcode_class', 'settings_section_text'), __FILE__);
@@ -415,8 +430,11 @@ John 1
     add_settings_field('esv_shortcode_size_limit', 'Cached passage size limit', array('esv_shortcode_class', 'size_limit_field'), __FILE__, 'esv_shortcode_main', array('label_for' => 'esv_shortcode_size_limit'));
     add_settings_field('esv_shortcode_expire_seconds_limit', 'Max cache entry expiration time', array('esv_shortcode_class', 'expire_seconds_limit_field'), __FILE__, 'esv_shortcode_main', array('label_for' => 'esv_shortcode_expire_seconds_limit'));
     add_settings_field('esv_shortcode_access_key', 'Access Key', array('esv_shortcode_class', 'access_key_field'), __FILE__, 'esv_shortcode_main', array('label_for' => 'esv_shortcode_access_key'));
+    // Setting that controls the default values of the include_copyright options.
+    add_settings_field('esv_shortcode_default_copyright', 'Default Copyright', array('esv_shortcode_class', 'default_copyright_field'), __FILE__, 'esv_shortcode_main', array('label_for' => 'esv_shortcode_default_copyright'));
     add_settings_field('esv_shortcode_chkreset', 'Reset options on next activation', array('esv_shortcode_class', 'chkreset_field'), __FILE__, 'esv_shortcode_main', array('label_for' => 'esv_shortcode_chkreset'));
     add_settings_section('esv_shortcode_stats', 'ESV Shortcode Statistics', array('esv_shortcode_class', 'stats_write'), __FILE__);
+    add_settings_field('esv_shortcode_chkreset', 'Reset options on next activation', array('esv_shortcode_class', 'chkreset_field'), __FILE__, 'esv_shortcode_main', array('label_for' => 'esv_shortcode_chkreset'));
     add_settings_field('esv_shortcode_chkresetstats', 'Reset statistics', array('esv_shortcode_class', 'chkresetstats_field'), __FILE__, 'esv_shortcode_stats', array('label_for' => 'esv_shortcode_chkresetstats'));
     // passages
     add_settings_section('esv_shortcode_passages', 'ESV Shortcode Passages', array('esv_shortcode_class', 'passages_section_text'), __FILE__);
@@ -453,6 +471,15 @@ John 1
     $options = self::get_opts();
     echo "<input id='esv_shortcode_access_key' name='esv_shortcode_options[access_key]' size='40' type='text' value='{$options['access_key']}' /><br>(if empty it must be supplied in each invocation)";
   } // access_key_field
+
+  public static function default_copyright_field($args)
+  {
+    $options = self::get_opts();
+    echo "<select id='esv_shortcode_default_copyright' name='esv_shortcode_options[default_copyright]'>\n";
+    echo "<option value='none'" . selected($options['default_copyright'], 'none', false) . ">None</option><br/>\n";
+    echo "<option value='short'" . selected($options['default_copyright'], 'short', false) . ">Short</option><br/>\n";
+    echo "<option value='long'" . selected($options['default_copyright'], 'long', false) . ">Long</option><br/>\n</select><br/>\n";
+  } // default_copyright_field
 
   public static function chkreset_field($args)
   {
@@ -497,7 +524,7 @@ John 1
   public static function passages_section_text()
   {
     echo "<p>A passage is described by a line in the following list.  Each line consists of a passage name and its reference separated by whitespace.</p>\n";
-    echo "When a syntax error is detected the line is preceeded by # and possibly a message.  Note that these lines will have a numeric \"passage name\".  Leave this in tact if you wish to retain the entry in the list.  Your passage names should not contain only numbers to avoid colliding with these.</p>\n";
+    echo "<p>When a syntax error is detected the line is preceeded by # and possibly a message.  Note that these lines will have a numeric \"passage name\".  Leave this in tact if you wish to retain the entry in the list.  Your passage names should not contain only numbers to avoid colliding with these.</p>\n";
     echo "<p>A \"reference\" can be displayed verbatim in place of the scripture text by starting it with " . self::$ref_msg_symbol . ".  The text may contain HTML, and will appear inside whatever container would have held the scripture text.</p>\n";
   } // passages_section_text
 
@@ -869,37 +896,43 @@ John 1
   {
     $opts = self::get_opts();
     extract( shortcode_atts( array(
-				   'key' => '',
-				   'scripture'	    			 		=>	'John 3:16',
-				   'passage'	    			 		=>	'',
-				   'container' 	    				=>	'span',
-				   'class'								=>	'esv-scripture',
-				   'include_passage_references'		=>	'true',
-				   'include_first_verse_numbers'		=>	'false',
-				   'include_verse_numbers'				=>	'true',
-				   'include_footnotes'					=>	'false',
-				   'include_footnote_links'			=>	'false',
-				   'include_headings'					=>	'false',
-				   'include_subheadings'				=>	'false',
-				   'include_surrounding_chapters'		=>	'false',
-				   'include_word_ids'					=>	'false',
-				   'link_url'							=>	'http://www.gnpcb.org/esv/search/',
-				   'include_audio_link'				=>	'false',
-				   'audio_format'						=>	'flash',
-				   'audio_version'						=>	'hw',
-				   'include_short_copyright'			=>	'false',
-				   'include_copyright'					=>	'false',
-				   'output_format'						=>	'html',
-				   'include_passage_horizontal_lines'	=>	'false',
-				   'include_heading_horizontal_lines'	=>	'false',
-				   'expire_seconds' => $opts['expire_seconds'],
-				   'size_limit' => $opts['size_limit'],
-				   'debug' => false,
-				   'remove' => false
-				   ), $atts ) );
+								   'key' => '',
+								   'scripture'	    			 		=>	'John 3:16',
+								   'passage'	    			 		=>	'',
+								   'container' 	    				=>	'span',
+								   'class'								=>	'esv-scripture',
+								   'include_passage_references'		=>	'true',
+								   'include_first_verse_numbers'		=>	'false',
+								   'include_verse_numbers'				=>	'true',
+								   'include_footnotes'					=>	'false',
+								   'include_footnote_links'			=>	'false',
+								   'include_headings'					=>	'false',
+								   'include_subheadings'				=>	'false',
+								   'include_surrounding_chapters'		=>	'false',
+								   'include_word_ids'					=>	'false',
+								   'link_url'							=>	'http://www.gnpcb.org/esv/search/',
+								   'include_audio_link'				=>	'false',
+								   'audio_format'						=>	'flash',
+								   'audio_version'						=>	'hw',
+								   'include_short_copyright'			=>	'undef',
+								   'include_copyright'					=>	'undef',
+								   'output_format'						=>	'html',
+								   'include_passage_horizontal_lines'	=>	'false',
+								   'include_heading_horizontal_lines'	=>	'false',
+								   'expire_seconds' => $opts['expire_seconds'],
+								   'size_limit' => $opts['size_limit'],
+								   'debug' => false,
+								   'remove' => false
+								   ), $atts ) );
     if ($remove == 'false') $remove = false;
     if ($debug == 'false') $debug = false;
+
     $msg = ""; // debug
+    if ($include_copyright == "undef" && $include_short_copyright == "undef")
+      {
+        if (array_key_exists('default_copyright', $opts) && $opts['default_copyright'] == 'long') $include_copyright = 'true'; 
+        if (array_key_exists('default_copyright', $opts) && $opts['default_copyright'] == 'short') $include_short_copyright = 'true'; 
+      } // if both copyright options are not specified
     // Handle expiration time multipliers
     //$msg .= "expire_seconds = $expire_seconds, expire_to_seconds(expire_seconds)=".self::expire_to_seconds($expire_seconds); // debug
     $expire_seconds = self::expire_to_seconds($expire_seconds);
@@ -909,87 +942,89 @@ John 1
     $expire_seconds_limit = array_key_exists('expire_seconds_limit', $opts)?self::expire_to_seconds($opts['expire_seconds_limit']):null;
     if ($expire_seconds_limit)
       {
-	if ($expire_seconds > $expire_seconds_limit) $expire_seconds = $expire_seconds_limit;
+		if ($expire_seconds > $expire_seconds_limit) $expire_seconds = $expire_seconds_limit;
       } // if $expire_seconds_limit
     $psg_name = '';
     //foreach (array("lec%b", "%b", "%bns") as $k => $v) $msg .= "strfTime($v)='".strfTime($v)."'\n"; // debug
     if ($passage)
       {
-	//ASSERT: $psg_name == ''
-	$arrRtn = self::get_passage_name($passage);
-	$psg_name = $arrRtn['psg_name'];
-	$msg .= $arrRtn['msg'];
-	unset($arrRtn);
+		//ASSERT: $psg_name == ''
+		$arrRtn = self::get_passage_name($passage);
+		$psg_name = $arrRtn['psg_name'];
+		$msg .= $arrRtn['msg'];
+		unset($arrRtn);
       } // if $passage
     if (!empty($psg_name) && isset($opts['passages_list'][$psg_name]))
       {
-	$msg .= "Trying to use passage=$psg_name\n"; // debug
-	// Check to see that the associated reference isn't a comment, if it is use $scripture instead.
-	$tmp = $opts['passages_list'][$psg_name];
-	$ref = !preg_match('/^\s*#/', $tmp)?
-	  $tmp : $scripture;
-	$msg .= "Using $ref\n"; // debug
+		$msg .= "Trying to use passage=$psg_name\n"; // debug
+		// Check to see that the associated reference isn't a comment, if it is use $scripture instead.
+		$tmp = $opts['passages_list'][$psg_name];
+		$ref = !preg_match('/^\s*#/', $tmp)?
+		  $tmp : $scripture;
+		$msg .= "Using $ref\n"; // debug
       } // if $passage
     else
       {
-	$msg .= "Using scripture attribute: $scripture\n"; // debug
-	$ref = $scripture;
+		$msg .= "Using scripture attribute: $scripture\n"; // debug
+		$ref = $scripture;
       } // else no passage name
     // If the "reference" isn't a verbatim text message, get the text of the reference.
     if (preg_match("/^" . self::$ref_msg_symbol . "/", $ref, $a))
       {
-	// verbatim text
-	$response = substr($ref, 1);
+		// verbatim text
+		$response = substr($ref, 1);
       }
     Else
       {
-	$ref = urlencode($ref);
-	if ($output_format == "html")
-	  {
-	    $url_prefix = self::$apiv3_html_url;
-	  }
-	else
-	  {
-	    $url_prefix = self::$apiv3_text_url;
-	  }
-	$options = "include-passage-references=".$include_passage_references."&include-first-verse-numbers=".$include_first_verse_numbers."&include-verse-numbers=".$include_verse_numbers."&include-footnotes=".$include_footnotes."&include-footnote-links=".$include_footnote_links."&include-headings=".$include_headings."&include-subheadings=".$include_subheadings."&include-surrounding-chapters=".$include_surrounding_chapters."&include-word-ids=".$include_word_ids."&link-url=".$link_url."&include-audio-link=".$include_audio_link."&audio-format=".$audio_format."&audio-version=".$audio_version."&include-short-copyright=".$include_short_copyright."&include-copyright=".$include_copyright."&include-passage-horizontal-lines=".$include_passage_horizontal_lines."&include-heading-horizontal-lines=".$include_passage_horizontal_lines;
-	if (empty($key) && isset($opts['access_key'])) $key = $opts['access_key'];
-	if (empty($key)) return "no access key";
-	$url = $url_prefix."?q=".$ref."&".$options;
-	$hash = "esv" . md5($output_format."&".$ref."&".$options);
-	$msg .= "Trying for cache entry $hash"; // debug
-	$response = get_transient($hash);
-	if (!$expire_seconds || !$response)
-	  {
-	    // fetch passage from server
-	    $msg .= ", not cached, fetching, expire_seconds=$expire_seconds, expire_seconds_limit=$expire_seconds_limit, url=$url"; // debug
-	    $arrrtn = self::get_response($url, array("Accept: application/json", "Authorization: Token ".$key));
-	    $resp = $arrrtn['response'];
-	    $msg .= $arrrtn['msg'];
-	    $msg .= "\nresp=$resp\n"; // debug
-	    // ?? response is JSON, need to pull the text out and check for errors.
-	    $json = json_decode($resp, true); // true makes elements to be returned as items of an associative array
-	    $msg .= "json = " . print_r($json, true) . "\n"; // debug
-	    $response = implode("\n", $json['passages']); // only first passage of a multi-passage reference
-	    if ($expire_seconds && (!$size_limit || strlen($response) < $size_limit))
-	      {
-		$msg .= ", fetched, ". strlen($response)." bytes cached as $hash for $expire_seconds seconds"; // debug
-		set_transient($hash, $response, $expire_seconds);
-	      } // cache
-	    else // debug
-	      { // debug
-		$msg .= ", not cached"; // debug
-	      } // debug
-	    self::stats_record(true); // fetched
-	  } // fetch passage
+		$ref = urlencode($ref);
+		if ($output_format == "html")
+		  {
+			$url_prefix = self::$apiv3_html_url;
+		  }
+		else
+		  {
+			$url_prefix = self::$apiv3_text_url;
+		  }
+		if ($include_short_copyright == "undef") $include_short_copyright = 'false';
+		if ($include_copyright == "undef") $include_copyright = 'false';
+		$options = "include-passage-references=".$include_passage_references."&include-first-verse-numbers=".$include_first_verse_numbers."&include-verse-numbers=".$include_verse_numbers."&include-footnotes=".$include_footnotes."&include-footnote-links=".$include_footnote_links."&include-headings=".$include_headings."&include-subheadings=".$include_subheadings."&include-surrounding-chapters=".$include_surrounding_chapters."&include-word-ids=".$include_word_ids."&link-url=".$link_url."&include-audio-link=".$include_audio_link."&audio-format=".$audio_format."&audio-version=".$audio_version."&include-short-copyright=".$include_short_copyright."&include-copyright=".$include_copyright."&include-passage-horizontal-lines=".$include_passage_horizontal_lines."&include-heading-horizontal-lines=".$include_passage_horizontal_lines;
+		if (empty($key) && isset($opts['access_key'])) $key = $opts['access_key'];
+		if (empty($key)) return "no access key";
+		$url = $url_prefix."?q=".$ref."&".$options;
+		$hash = "esv" . md5($output_format."&".$ref."&".$options);
+		$msg .= "Trying for cache entry $hash"; // debug
+		$response = get_transient($hash);
+		if (!$expire_seconds || !$response)
+		  {
+			// fetch passage from server
+			$msg .= ", not cached, fetching, expire_seconds=$expire_seconds, expire_seconds_limit=$expire_seconds_limit, url=$url"; // debug
+			$arrrtn = self::get_response($url, array("Accept: application/json", "Authorization: Token ".$key));
+			$resp = $arrrtn['response'];
+			$msg .= $arrrtn['msg'];
+			$msg .= "\nresp=$resp\n"; // debug
+			// ?? response is JSON, need to pull the text out and check for errors.
+			$json = json_decode($resp, true); // true makes elements to be returned as items of an associative array
+			$msg .= "json = " . print_r($json, true) . "\n"; // debug
+			$response = implode("\n", $json['passages']); // only first passage of a multi-passage reference
+			if ($expire_seconds && (!$size_limit || strlen($response) < $size_limit))
+			  {
+				$msg .= ", fetched, ". strlen($response)." bytes cached as $hash for $expire_seconds seconds"; // debug
+				set_transient($hash, $response, $expire_seconds);
+			  } // cache
+			else // debug
+			  { // debug
+				$msg .= ", not cached"; // debug
+			  } // debug
+			self::stats_record(true); // fetched
+		  } // fetch passage
 
-	else self::stats_record(false); // from cache
-	if ($remove)
-	  {
-	    $fRtn = delete_transient($hash);
-	    $msg .= $fRtn?", removed":", remove failed"; // debug
+		else self::stats_record(false); // from cache
+		if ($remove)
+		  {
+			$fRtn = delete_transient($hash);
+			$msg .= $fRtn?", removed":", remove failed"; // debug
 
-	  } // remove
+		  } // remove
       } // real reference
     //Display the Title as a link to the Post's permalink.
     //return (($container?"<".$container. ($class?" class=\"" . $class:'') . "\">":'') . $response . ($container?"</".$container.">":'');
