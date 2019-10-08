@@ -5,9 +5,9 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd, campg2003
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.1.6
+Version: 1.1.7
 Requires at least: 2.7
-Tested up to: 4.9.7
+Tested up to: 5.2.3
 Stable tag: 1.0.2
 
 This plugin uses the ESV Bible Web Service API to provide an easy way to display scripture in the ESV translation using WordPress shortcodes.
@@ -285,6 +285,10 @@ Example:
 
 == Changelog ==
 
+= 1.1.7 =
+* Function expire_seconds now removes the multiplier character before multiplying.  This began giving an error.
+* Changed max WordPress version to 5.2.3.
+
 = 1.1.6 =
 * Add default copyright option page setting.
 * Add access_key to add_defaults.
@@ -373,6 +377,11 @@ Prepare for conversion to API V3.
 * Added remove option.
 
 == Upgrade Notice ==
+
+= 1.1.7 =
+
+* Function expire_seconds now removes the multiplier character before multiplying.  This began giving an error.
+* Changed max WordPress version to 5.2.3.
 
 = 1.1.6 =
 * Added default copyright setting to options page.

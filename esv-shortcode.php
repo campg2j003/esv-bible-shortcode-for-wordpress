@@ -7,9 +7,9 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.1.6
+Version: 1.1.7
 Requires at least: 2.7
-Tested up to: 4.9.7
+Tested up to: 5.2.3
 Stable tag: 1.0.2
 */
   // see also version at start of class esv_shortcode
@@ -103,7 +103,7 @@ Stable tag: 1.0.2
 
 class esv_shortcode_class
 {
-  public static $version = '1.1.6';
+  public static $version = '1.1.7';
   public static $ref_msg_symbol = '@'; // Symbol that indicates that a passage "reference" is a message to be output verbatim.
   public static $psg_spec_sep = ";"; // delimits multiple passage specs in the passage attribute
   public static $options_version = 1;  // version of the options structure
@@ -884,6 +884,7 @@ John 1
     $multchar = substr($expire, -1);
     if (array_key_exists($multchar, self::$aMults))
     {
+	  $expire = substr($expire, 0, -1);
       $expire *= self::$aMults[$multchar];
     } // if multchar
     return $expire;
