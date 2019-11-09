@@ -7,9 +7,9 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.1.7
+Version: 1.1.8
 Requires at least: 2.7
-Tested up to: 5.2.3
+Tested up to: 5.2.4
 Stable tag: 1.0.2
 */
   // see also version at start of class esv_shortcode
@@ -103,7 +103,7 @@ Stable tag: 1.0.2
 
 class esv_shortcode_class
 {
-  public static $version = '1.1.7';
+  public static $version = '1.1.8';
   public static $ref_msg_symbol = '@'; // Symbol that indicates that a passage "reference" is a message to be output verbatim.
   public static $psg_spec_sep = ";"; // delimits multiple passage specs in the passage attribute
   public static $options_version = 1;  // version of the options structure
@@ -373,10 +373,23 @@ John 1
 	  {
 		$input['default_copyright'] = self::$default_default_copyright;
 	  } // if default_copyright
+	// chkreset and chkresetstats disappeared from options, causing an index
+	// error.  I have no clue why they vanished, but this is a pragmatic fix to restore them.
+	if (!array_key_exists('chkreset', $input))
+	  {
+		$input['chkreset'] = false;
+	  } // no chhkreset
+	if (!array_key_exists('chkresetstats', $input))
+	  {
+		$input['chkresetstats'] = false;
+	  } // no chhkresetstats
     // Copy these options.
     foreach (array('expire_seconds_limit', 'expire_seconds', 'size_limit', 'access_key', 'default_copyright', 'chkreset') as $i => $opt)
 	  {
-		$options[$opt] = $input[$opt];
+		if (array_key_exists($opt, $input))
+		  {
+			$options[$opt] = $input[$opt];
+		  }	
 	  } // foreach
     $options['was_reset'] = false;
     // If statistics are to be reset, reset them.
