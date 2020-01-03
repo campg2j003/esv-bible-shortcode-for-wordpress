@@ -7,9 +7,9 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.1.8
+Version: 1.1.9
 Requires at least: 2.7
-Tested up to: 5.2.4
+Tested up to: 5.3.2
 Stable tag: 1.0.2
 */
   // see also version at start of class esv_shortcode
@@ -103,7 +103,7 @@ Stable tag: 1.0.2
 
 class esv_shortcode_class
 {
-  public static $version = '1.1.8';
+  public static $version = '1.1.9';
   public static $ref_msg_symbol = '@'; // Symbol that indicates that a passage "reference" is a message to be output verbatim.
   public static $psg_spec_sep = ";"; // delimits multiple passage specs in the passage attribute
   public static $options_version = 1;  // version of the options structure
@@ -111,8 +111,11 @@ class esv_shortcode_class
   public static $default_expire_seconds_limit = "30d";
   public static $default_size_limit = 0; // limit for cached entry size, 0 is no limit
   public static $default_default_copyright = "short"; // default value for the Default Copyright drop-down setting
-  public static $apiv2_psg_url = "http://www.esvapi.org/v2/rest/passageQuery";
+  public static $apiv2_psg_url = "http://www.esvapi.org/v2/rest/passageQuery";  // used in search form
+  /* API v2 code
   public static $apiv2_query_url = "http://www.esvapi.org/v2/rest/queryInfo";
+  // end API v2
+  */
   public static $apiv3_html_url = "https://api.esv.org/v3/passage/html/";
   public static $apiv3_text_url = "https://api.esv.org/v3/passage/text/";
 
@@ -619,27 +622,7 @@ John 1
     $url = self::$apiv3_html_url."?q=".urlencode($ref);
     $arrrtn = self::get_response($url, array("Accept: application/json", "Authorization: Token ".$key));
     $resp = $arrrtn['response'];
-    $msg .= $arrrtn['msg'];
-    /* API V2 code.
-    // $resp is MXL containing information about the passage ref.
-    // $resp must contain: <query-type>passage</query-type>, if invalid verse ref returns <code>ref-not-exist</code> and <readable>message<br/>...</readable>
-    // Can also contain <error>message</error>
-    // ?? If error, return error message, else return ""
-    // | is delimiter in the following regexps.
-    if (preg_match("|<error>(.*?)</error>|", $resp, $a))
-    {
-      return "Fatal error: {$a[1]}";
-    } // if <error>
-    elseif (!preg_match("|<query-type>passage|", $resp, $a))
-    {
-      return "not a passage ref";
-    } // if not passage ref
-    elseif (preg_match("|<code>ref-not-exist</code>|", $resp, $a))
-    {
-      return "Nonexistent reference";
-    } // if <code>ref-not-exist
-// end V2 code
-*/
+    $msg = $arrrtn['msg'];
     $json = json_decode($resp, true);
     $response = $json['canonical'];
     if (empty($response))
@@ -1130,40 +1113,6 @@ John 1
 	    $arrrtn = self::get_response($url, array("Accept: application/json", "Authorization: Token ".$key));
 	    $resp = $arrrtn['response'];
 	    $msg .= $arrrtn['msg'];
-	    /* The following code was for API V2.
-	    // $resp is MXL containing information about the passage ref.
-	    // $resp must contain: <query-type>passage</query-type>, if invalid verse ref returns <code>ref-not-exist</code> and <readable>message<br/>...</readable>
-	    // Can also contain <error>message</error>
-	    if (preg_match("|<error>(.*?)</error>|", $resp, $a))
-	      {
-		$resp_error = true;
-		$response = "Fatal error: {$a[1]}";
-	      } // if <error>
-	    elseif (!preg_match("|<query-type>passage|", $resp, $a))
-	      {
-		$resp_error = true;
-		$response = "not a passage ref";
-	      } // if not passage ref
-	    elseif (preg_match("|<code>ref-not-exist</code>|", $resp, $a))
-	      {
-		$resp_error = true;
-		$response = "Nonexistent reference";
-	      } // if <code>ref-not-exist
-	    else
-	      {
-		// No elements that indicate an error
-		if (preg_match("|<readable>(.*?)</readable>|", $resp, $a))
-		  {
-		    $response = $a[1]; // valid
-		  }
-		else
-		  {
-		    $resp_error = true;
-		    $response = "Response did not contain a reference";
-		  } 
-	      } // else no elements that indicate an error
-// End API V2 code
-*/
 	    $json = json_decode($resp, true);
 	    $response = $json['canonical'];
 	    if (empty($response))

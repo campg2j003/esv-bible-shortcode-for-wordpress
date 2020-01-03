@@ -5,9 +5,9 @@ Description: This plugin uses the ESV Bible Web Service API to provide an easy w
 Author: Caleb Zahnd
 Contributors: calebzahnd, campg2003
 Tags: shortcode, Bible, church, English Standard Version, scripture
-Version: 1.1.8
+Version: 1.1.9
 Requires at least: 2.7
-Tested up to: 5.2.4
+Tested up to: 5.3.2
 Stable tag: 1.0.2
 
 This plugin uses the ESV Bible Web Service API to provide an easy way to display scripture in the ESV translation using WordPress shortcodes.
@@ -284,6 +284,11 @@ Example:
 
 
 == Changelog ==
+
+= 1.1.9 =
+* In ref_error fixed assignment to $msg.
+* Removed API v2 code.
+* Changed max WordPress version to 5.3.2.
 
 = 1.1.8 =
 * In esv_shortcode_options_validate added code to replace a couple of options that vanished from my site and caused index errors.  I don't know why they disappeared, but this should be safer anyway.  We also check to see if keys exist in $input before copying them to $options.
